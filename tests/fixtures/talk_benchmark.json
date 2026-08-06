@@ -1,0 +1,104 @@
+{
+  "_comment": [
+    "Golden benchmark fixture: a ten-minute talk with slides.",
+    "It declares the material content units a correct summary must contain,",
+    "which is what lets a run over it reach trusted-complete. Failure-injection",
+    "tests mutate a copy of this file; the mutation IS the injected failure."
+  ],
+  "source": {
+    "source_ref": "fixture://talk-benchmark",
+    "source_kind": "fixture",
+    "duration_ms": 600000,
+    "language": "en",
+    "title": "Migrating the ingest pipeline without downtime",
+    "digest": "sha256:0f3c1a9d2b7e4c5f6a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f"
+  },
+  "engine": {
+    "name": "fixture",
+    "version": "1.0.0",
+    "outbound_data": "none"
+  },
+  "transcript": {
+    "kind": "native_captions",
+    "language": "en",
+    "segments": [
+      {"start_ms": 0, "end_ms": 30000, "text": "Today I want to walk through how we moved the ingest pipeline.", "speaker_label": "S1"},
+      {"start_ms": 30000, "end_ms": 95000, "text": "There are three steps: drain the queue, dual-write, then cut over reads.", "speaker_label": "S1"},
+      {"start_ms": 95000, "end_ms": 120000, "text": "We were seeing about nine thousand events per second at that point.", "speaker_label": "S1"},
+      {"start_ms": 120000, "end_ms": 210000, "text": "The dual-write phase is where most teams get into trouble.", "speaker_label": "S1"},
+      {"start_ms": 210000, "end_ms": 240000, "text": "Correction on the earlier number, it was six thousand events per second, not nine.", "speaker_label": "S1"},
+      {"start_ms": 240000, "end_ms": 450000, "text": "Let me show you the dashboard during the cutover window.", "speaker_label": "S1"},
+      {"start_ms": 450000, "end_ms": 520000, "text": "Here are the numbers we ended up with.", "speaker_label": "S1"},
+      {"start_ms": 520000, "end_ms": 560000, "text": "On the sample workload this came out at four point two times faster.", "speaker_label": "S1"},
+      {"start_ms": 560000, "end_ms": 598000, "text": "That is the whole migration. Questions are in the thread.", "speaker_label": "S1"}
+    ]
+  },
+  "windows": [
+    {"start_ms": 0, "end_ms": 150000, "speech": "captured", "visual": "observed", "extraction_method": "scene_change", "material_unit_ids": ["u1"]},
+    {"start_ms": 150000, "end_ms": 300000, "speech": "captured", "visual": "observed", "extraction_method": "scene_change", "material_unit_ids": ["u2"]},
+    {"start_ms": 300000, "end_ms": 450000, "speech": "captured", "visual": "static_confirmed", "extraction_method": "periodic_sample", "material_unit_ids": []},
+    {"start_ms": 450000, "end_ms": 600000, "speech": "captured", "visual": "observed", "extraction_method": "scene_change", "material_unit_ids": ["u3"]}
+  ],
+  "material_units": [
+    {"unit_id": "u1", "description": "The three-step migration order: drain, dual-write, cut over reads", "start_ms": 30000, "end_ms": 95000},
+    {"unit_id": "u2", "description": "Correction: the throughput figure was six thousand per second, not nine", "start_ms": 210000, "end_ms": 240000},
+    {"unit_id": "u3", "description": "Final result: 4.2x speedup on the sample workload", "start_ms": 520000, "end_ms": 560000}
+  ],
+  "frames": [
+    {"kind": "visual", "start_ms": 32000, "end_ms": 33000, "artifact_id": "frame_0032.jpg"},
+    {"kind": "visual", "start_ms": 214000, "end_ms": 215000, "artifact_id": "frame_0214.jpg"},
+    {"kind": "visual", "start_ms": 520000, "end_ms": 521000, "artifact_id": "frame_0520.jpg"}
+  ],
+  "ocr_spans": [
+    {"kind": "ocr", "start_ms": 530000, "end_ms": 545000, "artifact_id": "frame_0530.jpg", "raw_timestamp": "00:08:50.120"}
+  ],
+  "claims": [
+    {
+      "claim_id": "c1",
+      "statement": "The migration runs in three steps: drain the queue, dual-write, then cut over reads.",
+      "role": "source_assertion",
+      "material": true,
+      "covers_units": ["u1"],
+      "speaker_label": "S1",
+      "evidence": [
+        {"kind": "speech", "start_ms": 30000, "end_ms": 95000, "relation": "supports", "note": "stated in order"}
+      ]
+    },
+    {
+      "claim_id": "c2",
+      "statement": "Throughput during the drain phase was six thousand events per second.",
+      "role": "source_assertion",
+      "material": true,
+      "covers_units": ["u2"],
+      "speaker_label": "S1",
+      "evidence": [
+        {"kind": "speech", "start_ms": 210000, "end_ms": 240000, "relation": "supports", "note": "the speaker's correction"},
+        {"kind": "speech", "start_ms": 95000, "end_ms": 120000, "relation": "qualifies", "note": "the earlier figure the speaker later corrected"}
+      ]
+    },
+    {
+      "claim_id": "c3",
+      "statement": "The dashboard shows a 4.2x speedup on the sample workload.",
+      "role": "visual_demonstration",
+      "material": true,
+      "covers_units": ["u3"],
+      "speaker_label": "S1",
+      "evidence": [
+        {"kind": "visual", "start_ms": 520000, "end_ms": 560000, "relation": "supports", "artifact_id": "frame_0520.jpg"},
+        {"kind": "ocr", "start_ms": 530000, "end_ms": 545000, "relation": "supports", "artifact_id": "frame_0530.jpg", "note": "on-screen figure"}
+      ]
+    },
+    {
+      "claim_id": "c4",
+      "statement": "The talk is aimed at teams running a comparable ingest pipeline.",
+      "role": "agent_inference",
+      "material": false,
+      "covers_units": [],
+      "evidence": [
+        {"kind": "speech", "start_ms": 0, "end_ms": 30000, "relation": "supports"}
+      ]
+    }
+  ],
+  "diagnostics": [],
+  "fallback_available": true
+}
