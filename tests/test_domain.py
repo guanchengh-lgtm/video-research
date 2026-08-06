@@ -38,6 +38,7 @@ def test_no_completeness_blocker_is_classified_as_a_warning():
         DiagnosticCode.MANUAL_RESCUE_USED,
         DiagnosticCode.VERIFIER_DISAGREEMENT,
         DiagnosticCode.OUTPUT_TRUNCATED,
+        DiagnosticCode.VIEW_DERIVATION_FAILED,
     }
     for code in blocker_shaped:
         assert SEVERITY[code] is not Severity.INFORMATIONAL, code

@@ -11,6 +11,13 @@ from video_research.adapters import (
     FixtureExtractionEngine,
     StructuralVerifier,
 )
+from video_research.claims import (
+    AtomicClaim,
+    ClaimLedger,
+    ClaimRole,
+    EvidenceRelation,
+    ExternalReference,
+)
 from video_research.ports import (
     CheckOutcome,
     ClaimExtractor,
@@ -19,6 +26,13 @@ from video_research.ports import (
     IndependentVerifier,
 )
 from video_research.store import dumps, encode_coverage, encode_ledger
+from video_research.timeline import (
+    CoverageManifest,
+    CoverageWindow,
+    SpeechCoverage,
+    TimeInterval,
+    VisualObservation,
+)
 
 from .conftest import BENCHMARK
 
@@ -60,8 +74,10 @@ def test_a_malformed_fixture_raises_an_extraction_error(tmp_path):
         lambda payload: payload["transcript"].update(kind="not-a-kind"),
         lambda payload: payload["windows"][0].pop("speech"),
         lambda payload: payload["windows"][0].update(end_ms=0),
+        lambda payload: payload.update(source=None),
+        lambda payload: payload["source"].update(duration_ms=None),
     ],
-    ids=["invalid-enum", "missing-key", "invalid-interval"],
+    ids=["invalid-enum", "missing-key", "invalid-interval", "null-source", "null-duration"],
 )
 def test_malformed_extraction_shapes_are_normalized_to_extraction_errors(
     damage, benchmark_payload, write_fixture
@@ -70,6 +86,7 @@ def test_malformed_extraction_shapes_are_normalized_to_extraction_errors(
     engine = FixtureExtractionEngine(write_fixture(benchmark_payload))
 
     with pytest.raises(ExtractionError, match="extraction output is malformed"):
+        engine.describe("x")
         engine.extract("x")
 
 
@@ -131,3 +148,25 @@ def test_the_verifier_abstains_rather_than_passing_a_semantic_check(
     assert outcomes["claim_entailment"] is CheckOutcome.UNVERIFIED
     assert outcomes["material_recall"] is CheckOutcome.UNVERIFIED
     assert CheckOutcome.PASS not in (outcomes["claim_entailment"], outcomes["material_recall"])
+
+
+def test_the_verifier_rejects_external_only_material_claims(tmp_path):
+    coverage = CoverageManifest(
+        1000,
+        (
+            CoverageWindow(
+                TimeInterval(0, 1000),
+                SpeechCoverage.CAPTURED,
+                VisualObservation.OBSERVED,
+                "test",
+            ),
+        ),
+    )
+    ledger = ClaimLedger(
+        (AtomicClaim("c1", "statement", ClaimRole.EXTERNAL_FACT, True),),
+        (),
+        (ExternalReference("c1", "https://example.com/doc", "doc", EvidenceRelation.SUPPORTS),),
+    )
+    report = StructuralVerifier().verify(write_draft(tmp_path, coverage, ledger))
+    outcomes = {c.name: c.outcome for c in report.checks}
+    assert outcomes["material_claims_supported"] is CheckOutcome.FAIL

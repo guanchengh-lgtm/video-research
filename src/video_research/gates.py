@@ -132,9 +132,7 @@ def gate_evidence(ledger: ClaimLedger, coverage: CoverageManifest) -> GateResult
     timeline = coverage.timeline if coverage.duration_ms > 0 else None
 
     for claim in sorted(ledger.material_claims(), key=lambda c: c.claim_id):
-        refs = ledger.evidence_for(claim.claim_id)
-        externals = ledger.external_for(claim.claim_id)
-        if not refs and not externals:
+        if not ledger.evidence_for(claim.claim_id):
             return _failed("G5", name, DiagnosticCode.MATERIAL_CLAIM_UNSUPPORTED,
                            f"material claim {claim.claim_id!r} cites no evidence")
 
@@ -190,7 +188,7 @@ def gate_view_derivation(views_match: bool, detail: str = "") -> GateResult:
     """G8: the human views regenerate exactly from the canonical artifacts."""
     if views_match:
         return _passed("G8", "view derivation", detail or "views regenerate from canonical data")
-    return _failed("G8", "view derivation", DiagnosticCode.CANONICAL_SCHEMA_INVALID,
+    return _failed("G8", "view derivation", DiagnosticCode.VIEW_DERIVATION_FAILED,
                    detail or "generated views drifted from the canonical artifacts")
 
 

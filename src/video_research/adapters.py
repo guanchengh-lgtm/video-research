@@ -101,6 +101,15 @@ class FixtureExtractionEngine:
         return self._cache
 
     def describe(self, source_ref: str) -> SourceDescriptor:
+        """Decode the source descriptor or normalize malformation at the port."""
+        try:
+            return self._describe(source_ref)
+        except ExtractionError:
+            raise
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            raise ExtractionError(f"fixture extraction output is malformed: {exc}") from exc
+
+    def _describe(self, source_ref: str) -> SourceDescriptor:
         source = self._payload()["source"]
         return SourceDescriptor(
             source_ref=source.get("source_ref", source_ref),
@@ -117,7 +126,7 @@ class FixtureExtractionEngine:
             return self._extract(source_ref)
         except ExtractionError:
             raise
-        except (KeyError, TypeError, ValueError) as exc:
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
             raise ExtractionError(f"fixture extraction output is malformed: {exc}") from exc
 
     def _extract(self, source_ref: str) -> ExtractedSource:
@@ -295,7 +304,7 @@ class StructuralVerifier:
         unsupported = sorted(
             c.claim_id
             for c in ledger.material_claims()
-            if not ledger.evidence_for(c.claim_id) and not ledger.external_for(c.claim_id)
+            if not ledger.evidence_for(c.claim_id)
         )
         checks.append(
             VerifierCheck(

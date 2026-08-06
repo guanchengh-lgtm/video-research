@@ -32,6 +32,7 @@ class DiagnosticCode(Enum):
     EXTRACTION_FAILED = "extraction_failed"
     NO_USABLE_TRANSCRIPT = "no_usable_transcript"
     CANONICAL_SCHEMA_INVALID = "canonical_schema_invalid"
+    VIEW_DERIVATION_FAILED = "view_derivation_failed"
 
     TRANSCRIPT_TRUNCATED = "transcript_truncated"
     TRANSCRIPT_LANGUAGE_UNEXPECTED = "transcript_language_unexpected"
@@ -55,6 +56,7 @@ SEVERITY: dict[DiagnosticCode, Severity] = {
     DiagnosticCode.EXTRACTION_FAILED: Severity.FATAL,
     DiagnosticCode.NO_USABLE_TRANSCRIPT: Severity.FATAL,
     DiagnosticCode.CANONICAL_SCHEMA_INVALID: Severity.FATAL,
+    DiagnosticCode.VIEW_DERIVATION_FAILED: Severity.COMPLETENESS_BLOCKER,
     DiagnosticCode.TRANSCRIPT_TRUNCATED: Severity.COMPLETENESS_BLOCKER,
     DiagnosticCode.TRANSCRIPT_LANGUAGE_UNEXPECTED: Severity.COMPLETENESS_BLOCKER,
     DiagnosticCode.TRANSCRIPT_TIMING_NONMONOTONIC: Severity.COMPLETENESS_BLOCKER,

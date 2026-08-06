@@ -10,8 +10,9 @@ from video_research.claims import (
     ClaimRole,
     EvidenceReference,
     EvidenceRelation,
+    ExternalReference,
 )
-from video_research.diagnostics import DiagnosticCode
+from video_research.diagnostics import DiagnosticCode, Severity
 from video_research.gates import (
     GateOutcome,
     collect_diagnostics,
@@ -225,6 +226,18 @@ def test_g5_rejects_a_material_claim_with_no_evidence():
     assert result.diagnostic.code is DiagnosticCode.MATERIAL_CLAIM_UNSUPPORTED
 
 
+def test_g5_rejects_external_refs_as_a_substitute_for_source_evidence():
+    ledger = ClaimLedger(
+        (claim("c1"),),
+        (),
+        (ExternalReference("c1", "https://example.com/doc", "doc", EvidenceRelation.SUPPORTS),),
+    )
+    result = gate_evidence(ledger, COVERAGE)
+    assert result.outcome is GateOutcome.FAIL
+    assert result.diagnostic is not None
+    assert result.diagnostic.code is DiagnosticCode.MATERIAL_CLAIM_UNSUPPORTED
+
+
 def test_g5_rejects_evidence_pointing_outside_the_source():
     ledger = ClaimLedger((claim("c1"),), (evidence("c1", 59000, 90000),))
     result = gate_evidence(ledger, COVERAGE)
@@ -279,7 +292,11 @@ def test_g7_fails_on_invalid_canonical_artifacts():
 
 
 def test_g8_fails_when_views_drift_from_canonical_data():
-    assert gate_view_derivation(False).outcome is GateOutcome.FAIL
+    result = gate_view_derivation(False)
+    assert result.outcome is GateOutcome.FAIL
+    assert result.diagnostic is not None
+    assert result.diagnostic.code is DiagnosticCode.VIEW_DERIVATION_FAILED
+    assert result.diagnostic.severity is Severity.COMPLETENESS_BLOCKER
 
 
 def test_g9_fails_when_a_human_had_to_step_in():

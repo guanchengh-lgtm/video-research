@@ -72,6 +72,8 @@ def decide(
         elif result.outcome is GateOutcome.UNVERIFIED:
             reasons.append(f"{result.gate_id} {result.name} could not be verified: {result.detail}")
 
+    if not verifier.checks:
+        reasons.append("independent verifier reported no checks")
     for check in verifier.checks:
         if check.outcome is CheckOutcome.FAIL:
             reasons.append(f"verifier check {check.name!r} failed: {check.detail}")

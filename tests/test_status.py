@@ -103,6 +103,14 @@ def test_a_run_with_no_gates_at_all_is_not_complete():
     assert any("never reported" in reason for reason in decision.reasons)
 
 
+def test_an_empty_verifier_report_forbids_completeness():
+    """A verifier that reported zero checks is the same omission as a missing gate."""
+    decision = decide((), gates(), VerifierReport())
+    assert decision.status is RunStatus.PARTIAL
+    assert any("no checks" in reason for reason in decision.reasons)
+    assert not decision.trusted
+
+
 @pytest.mark.parametrize("dropped", sorted(REQUIRED_GATES))
 def test_dropping_any_single_gate_forbids_completeness(dropped):
     """A gate wired up later but never called degrades the run, silently widening nothing."""
