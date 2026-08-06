@@ -1,0 +1,17 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Downloaded or generated video-research artifacts
+*.mp4
+*.webm
+*.mkv
+*.m4a
+*.mp3
+/*/transcript/
+/*/frames/
+/*/frames_*/
+/*/video_evidence.md
