@@ -155,11 +155,13 @@ def gate_evidence(ledger: ClaimLedger, coverage: CoverageManifest) -> GateResult
 
 
 def gate_material_recall(ledger: ClaimLedger, coverage: CoverageManifest) -> GateResult:
-    """G6: every declared material content unit is represented by a claim.
+    """G6: every declared material content unit is represented by a material claim.
 
     A source that declares no units cannot be checked. That is the honest answer
     for an arbitrary video, and it is reported as ``UNVERIFIED`` rather than
-    ``PASS`` so the run lands partial instead of falsely complete.
+    ``PASS`` so the run lands partial instead of falsely complete. Coverage from
+    non-material claims does not count: material units must appear as material
+    findings.
     """
     name = "material recall"
     declared = coverage.material_units

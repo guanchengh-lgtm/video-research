@@ -71,6 +71,12 @@ def unrepresented_material_unit(payload: dict[str, Any]) -> None:
     payload["claims"][1]["covers_units"] = []
 
 
+def material_units_only_on_non_material_claims(payload: dict[str, Any]) -> None:
+    """Units stay linked, but every claim is demoted so none is a material finding."""
+    for claim in payload["claims"]:
+        claim["material"] = False
+
+
 def claim_citing_an_undeclared_unit(payload: dict[str, Any]) -> None:
     payload["claims"][0]["covers_units"] = ["u-does-not-exist"]
 
@@ -100,6 +106,7 @@ DEGRADING: dict[str, Damage] = {
     "material_claim_without_evidence": material_claim_without_evidence,
     "evidence_outside_the_source": evidence_outside_the_source,
     "unrepresented_material_unit": unrepresented_material_unit,
+    "material_units_only_on_non_material_claims": material_units_only_on_non_material_claims,
     "claim_citing_an_undeclared_unit": claim_citing_an_undeclared_unit,
 }
 
@@ -154,6 +161,20 @@ def test_the_undamaged_benchmark_still_passes(run_fixture):
     """The guard on the suite: if the fixture stopped passing, every injection
     test above would trivially 'succeed' while proving nothing."""
     assert run_fixture().status is RunStatus.TRUSTED_COMPLETE
+
+
+def test_non_material_covers_units_cannot_satisfy_material_recall(
+    benchmark_payload, write_fixture, run_fixture
+):
+    """Material content units must appear as material findings, not only as
+    covers_units links on non-material claims."""
+    material_units_only_on_non_material_claims(benchmark_payload)
+    pack = run_fixture(write_fixture(benchmark_payload))
+
+    assert pack.status is RunStatus.PARTIAL
+    assert pack.ledger.material_claims() == ()
+    assert "No material claims were established" in pack.summary_markdown
+    assert any("unrepresented material unit" in reason for reason in pack.run.status_reasons)
 
 
 def test_duplicate_evidence_is_harmless(benchmark_payload, write_fixture, run_fixture):

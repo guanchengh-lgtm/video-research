@@ -275,6 +275,16 @@ def test_g6_fails_when_a_declared_unit_has_no_claim():
     assert result.diagnostic.code is DiagnosticCode.MATERIAL_UNIT_UNREPRESENTED
 
 
+def test_g6_ignores_coverage_from_non_material_claims():
+    ledger = ClaimLedger((claim("c1", material=False, units=("u1",)),))
+    coverage = CoverageManifest(1000, (window(0, 1000, units=("u1",)),), (unit("u1"),))
+    result = gate_material_recall(ledger, coverage)
+    assert result.outcome is GateOutcome.FAIL
+    assert "u1" in result.detail
+    assert result.diagnostic is not None
+    assert result.diagnostic.code is DiagnosticCode.MATERIAL_UNIT_UNREPRESENTED
+
+
 def test_g6_is_unverified_without_an_oracle_rather_than_passing():
     result = gate_material_recall(ClaimLedger((claim("c1"),)), CoverageManifest(1000))
     assert result.outcome is GateOutcome.UNVERIFIED
