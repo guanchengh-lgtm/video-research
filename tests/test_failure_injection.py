@@ -81,6 +81,11 @@ def claim_citing_an_undeclared_unit(payload: dict[str, Any]) -> None:
     payload["claims"][0]["covers_units"] = ["u-does-not-exist"]
 
 
+def non_material_claim_citing_undeclared_unit(payload: dict[str, Any]) -> None:
+    """A non-material claim links to a unit the oracle never declared."""
+    payload["claims"][3]["covers_units"] = ["u-ghost"]
+
+
 def unsupported_source(payload: dict[str, Any]) -> None:
     payload["source"]["source_kind"] = "private_video"
 
@@ -108,6 +113,7 @@ DEGRADING: dict[str, Damage] = {
     "unrepresented_material_unit": unrepresented_material_unit,
     "material_units_only_on_non_material_claims": material_units_only_on_non_material_claims,
     "claim_citing_an_undeclared_unit": claim_citing_an_undeclared_unit,
+    "non_material_claim_citing_undeclared_unit": non_material_claim_citing_undeclared_unit,
 }
 
 #: Damage that removes the basis for any research at all.
@@ -175,6 +181,21 @@ def test_non_material_covers_units_cannot_satisfy_material_recall(
     assert pack.ledger.material_claims() == ()
     assert "No material claims were established" in pack.summary_markdown
     assert any("unrepresented material unit" in reason for reason in pack.run.status_reasons)
+
+
+def test_non_material_undeclared_unit_link_fails_claim_entailment(
+    benchmark_payload, write_fixture, run_fixture
+):
+    """Every claim-to-unit link must resolve, including non-material claims."""
+    non_material_claim_citing_undeclared_unit(benchmark_payload)
+    pack = run_fixture(write_fixture(benchmark_payload))
+
+    assert pack.status is RunStatus.PARTIAL
+    assert pack.ledger.covered_unit_ids() <= pack.coverage.declared_unit_ids()
+    assert any(
+        "claim_entailment" in reason and "u-ghost" in reason
+        for reason in pack.run.status_reasons
+    )
 
 
 def test_duplicate_evidence_is_harmless(benchmark_payload, write_fixture, run_fixture):

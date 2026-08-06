@@ -359,7 +359,8 @@ class StructuralVerifier:
                     else f"{len(declared)} declared unit(s) linked to claims",
                 )
             )
-            unlinked = sorted(ledger.covered_unit_ids() - declared)
+            linked = frozenset(uid for c in ledger.claims for uid in c.covers_units)
+            unlinked = sorted(linked - declared)
             checks.append(
                 VerifierCheck(
                     "claim_entailment",
