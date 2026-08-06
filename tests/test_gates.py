@@ -249,11 +249,13 @@ def unit(unit_id: str) -> MaterialContentUnit:
 
 def test_g6_passes_when_every_declared_unit_is_represented():
     ledger = ClaimLedger((claim("c1", units=("u1",)),))
-    assert gate_material_recall(ledger, (unit("u1"),)).outcome is GateOutcome.PASS
+    coverage = CoverageManifest(1000, (window(0, 1000, units=("u1",)),), (unit("u1"),))
+    assert gate_material_recall(ledger, coverage).outcome is GateOutcome.PASS
 
 
 def test_g6_fails_when_a_declared_unit_has_no_claim():
-    result = gate_material_recall(ClaimLedger((claim("c1"),)), (unit("u1"),))
+    coverage = CoverageManifest(1000, (window(0, 1000, units=("u1",)),), (unit("u1"),))
+    result = gate_material_recall(ClaimLedger((claim("c1"),)), coverage)
     assert result.outcome is GateOutcome.FAIL
     assert "u1" in result.detail
     assert result.diagnostic is not None
@@ -261,7 +263,7 @@ def test_g6_fails_when_a_declared_unit_has_no_claim():
 
 
 def test_g6_is_unverified_without_an_oracle_rather_than_passing():
-    result = gate_material_recall(ClaimLedger((claim("c1"),)), ())
+    result = gate_material_recall(ClaimLedger((claim("c1"),)), CoverageManifest(1000))
     assert result.outcome is GateOutcome.UNVERIFIED
     assert result.diagnostic is None, "an undecidable gate raises no diagnostic, it just abstains"
 
@@ -291,7 +293,7 @@ def test_collect_diagnostics_returns_only_what_failed():
     results = (
         gate_unattended(False),
         gate_unattended(True),
-        gate_material_recall(ClaimLedger(), ()),
+        gate_material_recall(ClaimLedger(), CoverageManifest(1000)),
     )
     collected = collect_diagnostics(results)
     assert [d.code for d in collected] == [DiagnosticCode.MANUAL_RESCUE_USED]

@@ -56,7 +56,7 @@ A **Research Pack**: three canonical artifacts plus two generated views.
 | File | Layer |
 |------|-------|
 | `run.json` | canonical — provenance, envelope, gates, verifier checks, diagnostics, status |
-| `coverage.json` | canonical — the timeline partitioned into observed windows |
+| `coverage.json` | canonical — observed timeline windows and the material-unit oracle |
 | `claims.json` | canonical — atomic claims, roles, evidence edges |
 | `summary.md` | generated view |
 | `report.html` | generated view |
@@ -87,7 +87,7 @@ gate abstains and the run is partial. That is the honest answer, not a gap.
 ## Develop
 
 ```bash
-pytest         # 157 tests
+pytest         # 166 tests
 ruff check .
 ```
 

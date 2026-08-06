@@ -54,8 +54,8 @@ def unobserved_window(payload: dict[str, Any]) -> None:
     payload["windows"][2]["visual"] = "unobserved"
 
 
-def sparse_visual_coverage(payload: dict[str, Any]) -> None:
-    payload["windows"][0]["speech"] = "unobserved"
+def missing_visual_coverage(payload: dict[str, Any]) -> None:
+    payload["windows"][0]["visual"] = "unobserved"
 
 
 def material_claim_without_evidence(payload: dict[str, Any]) -> None:
@@ -96,7 +96,7 @@ DEGRADING: dict[str, Damage] = {
     "gap_in_the_middle": gap_in_the_middle,
     "overlapping_windows": overlapping_windows,
     "unobserved_window": unobserved_window,
-    "sparse_visual_coverage": sparse_visual_coverage,
+    "missing_visual_coverage": missing_visual_coverage,
     "material_claim_without_evidence": material_claim_without_evidence,
     "evidence_outside_the_source": evidence_outside_the_source,
     "unrepresented_material_unit": unrepresented_material_unit,

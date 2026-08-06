@@ -8,7 +8,7 @@ Pipeline, in order:
 
     describe → G1 envelope → extract → G2 transcript → coverage windows
     → claims → G3..G7, G9 → draft serialization → independent verifier
-    → status decision → write the pack
+    → provisional pack → G8 canonical rerender → status decision → write the pack
 
 The verifier runs against a serialized draft in a scratch directory, so it only
 ever sees what survived a round trip through JSON. Status is decided once,
@@ -66,6 +66,7 @@ from .store import (
     dumps,
     encode_coverage,
     encode_ledger,
+    read_pack,
     write_pack,
 )
 from .timeline import CoverageManifest
@@ -80,6 +81,8 @@ FIXTURE_ENVELOPE = SupportEnvelope(
     admitted_languages=None,
     requires_known_duration=True,
 )
+
+_VIEW_DERIVATION_OK = "summary.md and report.html reproduce from canonical artifacts"
 
 
 def research_video(
@@ -124,17 +127,65 @@ def research_video(
             output_dir, gates=(envelope_gate,),
         )
 
-    coverage = CoverageManifest(duration_ms=source.descriptor.duration_ms, windows=source.windows)
+    coverage = CoverageManifest(
+        duration_ms=source.descriptor.duration_ms,
+        windows=source.windows,
+        material_units=source.declared_material_units,
+    )
     ledger = claim_extractor.extract_claims(source)
 
-    gates = (envelope_gate, *_evaluate(source, coverage, ledger, manual_rescue))
-    diagnostics = source.diagnostics + collect_diagnostics(gates)
-    diagnostics += _fallback_diagnostics(source)
+    evaluated = _evaluate(source, coverage, ledger, manual_rescue)
+    provisional_view_gate = gate_view_derivation(True, _VIEW_DERIVATION_OK)
+    gates = (envelope_gate, *evaluated[:-1], provisional_view_gate, evaluated[-1])
 
     # The verifier's own checks are the record of its disagreement; `decide`
     # reports each one, so restating them as a diagnostic would double-count.
     verifier_report = _verify_from_disk(verifier, coverage, ledger)
 
+    candidate = _assemble_pack(
+        run_id=run_id,
+        created_at=created_at,
+        envelope=envelope,
+        source=source,
+        coverage=coverage,
+        ledger=ledger,
+        gates=gates,
+        verifier_report=verifier_report,
+        manual_rescue=manual_rescue,
+    )
+    view_gate = _view_derivation_from_disk(candidate)
+    gates = tuple(view_gate if gate.gate_id == "G8" else gate for gate in gates)
+    pack = _assemble_pack(
+        run_id=run_id,
+        created_at=created_at,
+        envelope=envelope,
+        source=source,
+        coverage=coverage,
+        ledger=ledger,
+        gates=gates,
+        verifier_report=verifier_report,
+        manual_rescue=manual_rescue,
+    )
+
+    if output_dir is not None:
+        write_pack(Path(output_dir), pack)
+    return pack
+
+
+def _assemble_pack(
+    *,
+    run_id: str,
+    created_at: str,
+    envelope: SupportEnvelope,
+    source: ExtractedSource,
+    coverage: CoverageManifest,
+    ledger: ClaimLedger,
+    gates: tuple[GateResult, ...],
+    verifier_report: VerifierReport,
+    manual_rescue: bool,
+) -> ResearchPack:
+    diagnostics = source.diagnostics + collect_diagnostics(gates)
+    diagnostics += _fallback_diagnostics(source)
     decision = decide(diagnostics, gates, verifier_report, manual_rescue)
 
     record = RunRecord(
@@ -155,10 +206,7 @@ def research_video(
         manual_rescue=manual_rescue,
     )
 
-    pack = _rendered(ResearchPack(run=record, coverage=coverage, ledger=ledger))
-    if output_dir is not None:
-        write_pack(Path(output_dir), pack)
-    return pack
+    return _rendered(ResearchPack(run=record, coverage=coverage, ledger=ledger))
 
 
 def _evaluate(
@@ -173,9 +221,8 @@ def _evaluate(
         gate_timeline_partition(coverage),
         gate_observation(coverage),
         gate_evidence(ledger, coverage),
-        gate_material_recall(ledger, source.declared_material_units),
+        gate_material_recall(ledger, coverage),
         gate_schema(schema_ok, schema_detail),
-        gate_view_derivation(schema_ok, schema_detail),
         gate_unattended(manual_rescue),
     )
 
@@ -218,6 +265,29 @@ def _verify_from_disk(
         (draft / "coverage.json").write_text(dumps(encode_coverage(coverage)), encoding="utf-8")
         (draft / "claims.json").write_text(dumps(encode_ledger(ledger)), encoding="utf-8")
         return verifier.verify(draft)
+
+
+def _view_derivation_from_disk(pack: ResearchPack) -> GateResult:
+    """G8: persist a full pack, re-read canonical data, and reproduce both views."""
+    try:
+        with tempfile.TemporaryDirectory(prefix="video-research-view-check-") as tmp:
+            draft = Path(tmp)
+            write_pack(draft, pack)
+            reloaded = read_pack(draft)
+            summary_matches = render_summary(reloaded) == reloaded.summary_markdown
+            report_matches = render_report(reloaded) == reloaded.report_html
+    except (OSError, SchemaError, ValueError) as exc:
+        return gate_view_derivation(False, f"canonical rerender failed: {exc}")
+
+    if not summary_matches or not report_matches:
+        drifted = []
+        if not summary_matches:
+            drifted.append("summary.md")
+        if not report_matches:
+            drifted.append("report.html")
+        detail = f"view drift after canonical reload: {', '.join(drifted)}"
+        return gate_view_derivation(False, detail)
+    return gate_view_derivation(True, _VIEW_DERIVATION_OK)
 
 
 def _fallback_diagnostics(source: ExtractedSource) -> tuple[Diagnostic, ...]:

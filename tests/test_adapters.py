@@ -54,6 +54,25 @@ def test_a_malformed_fixture_raises_an_extraction_error(tmp_path):
         FixtureExtractionEngine(path).describe("x")
 
 
+@pytest.mark.parametrize(
+    "damage",
+    [
+        lambda payload: payload["transcript"].update(kind="not-a-kind"),
+        lambda payload: payload["windows"][0].pop("speech"),
+        lambda payload: payload["windows"][0].update(end_ms=0),
+    ],
+    ids=["invalid-enum", "missing-key", "invalid-interval"],
+)
+def test_malformed_extraction_shapes_are_normalized_to_extraction_errors(
+    damage, benchmark_payload, write_fixture
+):
+    damage(benchmark_payload)
+    engine = FixtureExtractionEngine(write_fixture(benchmark_payload))
+
+    with pytest.raises(ExtractionError, match="extraction output is malformed"):
+        engine.extract("x")
+
+
 def test_raw_engine_timestamps_survive_extraction():
     """A merged navigation timeline may never replace the exact source location."""
     source = FixtureExtractionEngine(BENCHMARK).extract("x")

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from video_research.run import RunStatus
 from video_research.store import read_pack
 from video_research.views import render_report, render_summary
@@ -99,15 +101,30 @@ def test_source_text_is_escaped_in_the_html_report(benchmark_payload, write_fixt
     assert "<img src=x onerror=1>" not in pack.report_html
 
 
-def test_external_reference_urls_are_escaped(benchmark_payload, write_fixture, run_fixture):
+@pytest.mark.parametrize("unsafe_url", ["javascript:alert(1)", "data:text/html,<script>x</script>"])
+def test_external_reference_urls_use_a_web_scheme_allowlist(
+    unsafe_url, benchmark_payload, write_fixture, run_fixture
+):
     benchmark_payload["claims"][0]["external"] = [
-        {"url": '"><script>alert(1)</script>', "title": "primary source",
+        {"url": unsafe_url, "title": "primary source", "relation": "supports"}
+    ]
+    pack = run_fixture(write_fixture(benchmark_payload))
+
+    assert unsafe_url not in pack.report_html
+    assert f"]({unsafe_url})" not in pack.summary_markdown
+    assert "unsafe URL omitted" in pack.report_html
+    assert "unsafe URL omitted" in pack.summary_markdown
+
+
+def test_https_external_references_remain_clickable(benchmark_payload, write_fixture, run_fixture):
+    benchmark_payload["claims"][0]["external"] = [
+        {"url": "https://example.test/evidence", "title": "primary source",
          "relation": "supports"}
     ]
     pack = run_fixture(write_fixture(benchmark_payload))
 
-    assert "<script>alert(1)</script>" not in pack.report_html
-    assert 'rel="nofollow noopener"' in pack.report_html
+    assert 'href="https://example.test/evidence"' in pack.report_html
+    assert "[primary source](https://example.test/evidence)" in pack.summary_markdown
 
 
 def test_the_summary_discloses_engine_identity_and_outbound_data(run_fixture):

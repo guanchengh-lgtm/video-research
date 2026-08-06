@@ -130,6 +130,7 @@ class CoverageManifest:
 
     duration_ms: Millis
     windows: tuple[CoverageWindow, ...] = field(default_factory=tuple)
+    material_units: tuple[MaterialContentUnit, ...] = field(default_factory=tuple)
 
     @property
     def timeline(self) -> TimeInterval:
@@ -177,4 +178,10 @@ class CoverageManifest:
         return tuple(w for w in self.windows if not w.observed)
 
     def declared_unit_ids(self) -> frozenset[str]:
-        return frozenset(uid for w in self.windows for uid in w.material_unit_ids)
+        """The canonical material-recall oracle for this source.
+
+        Window ``material_unit_ids`` locate units on the timeline; they do not
+        declare the oracle. Keeping the declarations here gives both the local
+        gate and a cold verifier the same persisted source of truth.
+        """
+        return frozenset(unit.unit_id for unit in self.material_units)

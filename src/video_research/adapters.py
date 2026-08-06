@@ -90,9 +90,14 @@ class FixtureExtractionEngine:
             if not self.fixture_path.exists():
                 raise ExtractionError(f"fixture not found: {self.fixture_path}")
             try:
-                self._cache = json.loads(self.fixture_path.read_text(encoding="utf-8"))
+                payload = json.loads(self.fixture_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError as exc:
                 raise ExtractionError(f"fixture is not valid JSON: {exc}") from exc
+            except OSError as exc:
+                raise ExtractionError(f"fixture could not be read: {exc}") from exc
+            if not isinstance(payload, dict):
+                raise ExtractionError("fixture root must be a JSON object")
+            self._cache = payload
         return self._cache
 
     def describe(self, source_ref: str) -> SourceDescriptor:
@@ -107,6 +112,15 @@ class FixtureExtractionEngine:
         )
 
     def extract(self, source_ref: str) -> ExtractedSource:
+        """Decode fixture output or normalize every malformed shape at the port."""
+        try:
+            return self._extract(source_ref)
+        except ExtractionError:
+            raise
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ExtractionError(f"fixture extraction output is malformed: {exc}") from exc
+
+    def _extract(self, source_ref: str) -> ExtractedSource:
         payload = self._payload()
 
         failure = payload.get("extraction_error")

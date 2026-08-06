@@ -32,6 +32,27 @@ def test_coverage_round_trips(run_fixture):
     assert decode_coverage(encode_coverage(pack.coverage)) == pack.coverage
 
 
+def test_coverage_persists_the_material_unit_oracle(run_fixture):
+    pack = run_fixture()
+    payload = encode_coverage(pack.coverage)
+
+    encoded_units = payload["coverage"]["material_units"]
+    assert {unit["unit_id"] for unit in encoded_units} == pack.coverage.declared_unit_ids()
+    assert decode_coverage(payload).material_units == pack.coverage.material_units
+
+
+def test_legacy_coverage_schema_recovers_its_window_declared_units(run_fixture):
+    pack = run_fixture()
+    payload = encode_coverage(pack.coverage)
+    payload["schema_version"] = "1.0.0"
+    del payload["coverage"]["material_units"]
+
+    decoded = decode_coverage(payload)
+
+    expected = {unit_id for window in pack.coverage.windows for unit_id in window.material_unit_ids}
+    assert decoded.declared_unit_ids() == expected
+
+
 def test_ledger_round_trips_including_evidence_relations(run_fixture):
     pack = run_fixture()
     decoded = decode_ledger(encode_ledger(pack.ledger))

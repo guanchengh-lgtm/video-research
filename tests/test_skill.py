@@ -59,7 +59,16 @@ def test_coverage_accounts_for_the_whole_timeline(run_fixture):
 def test_declared_material_units_all_appear(run_fixture, benchmark_payload):
     pack = run_fixture()
     declared = {u["unit_id"] for u in benchmark_payload["material_units"]}
+    assert pack.coverage.declared_unit_ids() == declared
     assert declared <= pack.ledger.covered_unit_ids()
+
+
+def test_g8_checks_views_by_rerendering_the_canonical_pack(run_fixture):
+    pack = run_fixture()
+    gate = next(gate for gate in pack.run.gates if gate.gate_id == "G8")
+
+    assert gate.outcome == "pass"
+    assert gate.detail == "summary.md and report.html reproduce from canonical artifacts"
 
 
 def test_pack_is_written_to_disk_and_reads_back(run_fixture, tmp_path):
@@ -102,6 +111,16 @@ def test_failed_run_produces_no_misleading_summary(benchmark_payload, write_fixt
     assert "Failed Run" in pack.summary_markdown
     assert "the source could not be downloaded" in pack.summary_markdown
     assert pack.ledger.material_claims() == ()
+
+
+def test_malformed_extraction_output_becomes_a_failed_run(
+    benchmark_payload, write_fixture, run_fixture
+):
+    benchmark_payload["transcript"]["kind"] = "invented_transcript_kind"
+    pack = run_fixture(write_fixture(benchmark_payload))
+
+    assert pack.status is RunStatus.FAILED
+    assert any("malformed" in reason for reason in pack.run.status_reasons)
 
 
 def test_a_source_declaring_no_material_units_cannot_be_trusted_complete(

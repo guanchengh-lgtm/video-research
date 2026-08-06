@@ -38,6 +38,7 @@ from .run import (
 from .timeline import (
     CoverageManifest,
     CoverageWindow,
+    MaterialContentUnit,
     SourceSpan,
     SpanKind,
     SpeechCoverage,
@@ -45,8 +46,8 @@ from .timeline import (
     VisualObservation,
 )
 
-SCHEMA_VERSION = "1.0.0"
-SUPPORTED_SCHEMA_VERSIONS = frozenset({SCHEMA_VERSION})
+SCHEMA_VERSION = "1.1.0"
+SUPPORTED_SCHEMA_VERSIONS = frozenset({"1.0.0", SCHEMA_VERSION})
 
 RUN_FILE = "run.json"
 COVERAGE_FILE = "coverage.json"
@@ -142,6 +143,14 @@ def encode_coverage(coverage: CoverageManifest) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "coverage": {
             "duration_ms": coverage.duration_ms,
+            "material_units": [
+                {
+                    "unit_id": unit.unit_id,
+                    "description": unit.description,
+                    "interval": _interval(unit.interval),
+                }
+                for unit in coverage.material_units
+            ],
             "windows": [
                 {
                     "interval": _interval(w.interval),
@@ -198,13 +207,14 @@ def encode_ledger(ledger: ClaimLedger) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 
-def _require_version(payload: dict[str, Any], filename: str) -> None:
+def _require_version(payload: dict[str, Any], filename: str) -> str:
     version = payload.get("schema_version")
-    if version not in SUPPORTED_SCHEMA_VERSIONS:
+    if not isinstance(version, str) or version not in SUPPORTED_SCHEMA_VERSIONS:
         raise SchemaError(
             f"{filename} declares schema_version {version!r}; "
             f"this build understands {sorted(SUPPORTED_SCHEMA_VERSIONS)}"
         )
+    return version
 
 
 def _decode_interval(payload: dict[str, Any] | None) -> TimeInterval | None:
@@ -283,7 +293,7 @@ def decode_run(payload: dict[str, Any]) -> RunRecord:
 
 
 def decode_coverage(payload: dict[str, Any]) -> CoverageManifest:
-    _require_version(payload, COVERAGE_FILE)
+    version = _require_version(payload, COVERAGE_FILE)
     try:
         body = payload["coverage"]
         windows = []
@@ -299,9 +309,46 @@ def decode_coverage(payload: dict[str, Any]) -> CoverageManifest:
                     material_unit_ids=tuple(w.get("material_unit_ids", ())),
                 )
             )
-        return CoverageManifest(duration_ms=int(body["duration_ms"]), windows=tuple(windows))
+        if version == "1.0.0":
+            material_units = _legacy_material_units(tuple(windows))
+        else:
+            material_units = tuple(
+                MaterialContentUnit(
+                    unit_id=unit["unit_id"],
+                    description=unit.get("description", ""),
+                    interval=_required_interval(unit["interval"]),
+                )
+                for unit in body["material_units"]
+            )
+        return CoverageManifest(
+            duration_ms=int(body["duration_ms"]),
+            windows=tuple(windows),
+            material_units=material_units,
+        )
     except (KeyError, TypeError, ValueError) as exc:
         raise SchemaError(f"{COVERAGE_FILE} is not a valid coverage manifest: {exc}") from exc
+
+
+def _required_interval(payload: dict[str, Any]) -> TimeInterval:
+    interval = _decode_interval(payload)
+    assert interval is not None
+    return interval
+
+
+def _legacy_material_units(
+    windows: tuple[CoverageWindow, ...],
+) -> tuple[MaterialContentUnit, ...]:
+    """Read the 1.0 window-id oracle while preserving its declared meaning.
+
+    Version 1.0 did not persist descriptions or exact unit intervals. The first
+    window carrying each id is the only recoverable location, so legacy reads
+    retain that conservative location and all new writes use the 1.1 shape.
+    """
+    units: dict[str, MaterialContentUnit] = {}
+    for window in windows:
+        for unit_id in window.material_unit_ids:
+            units.setdefault(unit_id, MaterialContentUnit(unit_id, "", window.interval))
+    return tuple(units.values())
 
 
 def decode_ledger(payload: dict[str, Any]) -> ClaimLedger:

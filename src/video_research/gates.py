@@ -14,7 +14,7 @@ from enum import Enum
 from .claims import ClaimLedger
 from .diagnostics import Diagnostic, DiagnosticCode
 from .run import SourceDescriptor, SupportEnvelope, Transcript, TranscriptKind
-from .timeline import CoverageManifest, MaterialContentUnit, TimeInterval
+from .timeline import CoverageManifest, TimeInterval
 
 #: Fraction of the timeline a transcript must reach before it is not truncated.
 TRANSCRIPT_REACH_RATIO = 0.95
@@ -156,8 +156,7 @@ def gate_evidence(ledger: ClaimLedger, coverage: CoverageManifest) -> GateResult
     return _passed("G5", name, f"{len(ledger.material_claims())} material claim(s) supported")
 
 
-def gate_material_recall(ledger: ClaimLedger,
-                         declared: tuple[MaterialContentUnit, ...]) -> GateResult:
+def gate_material_recall(ledger: ClaimLedger, coverage: CoverageManifest) -> GateResult:
     """G6: every declared material content unit is represented by a claim.
 
     A source that declares no units cannot be checked. That is the honest answer
@@ -165,6 +164,7 @@ def gate_material_recall(ledger: ClaimLedger,
     ``PASS`` so the run lands partial instead of falsely complete.
     """
     name = "material recall"
+    declared = coverage.material_units
     if not declared:
         return GateResult(
             "G6", name, GateOutcome.UNVERIFIED,

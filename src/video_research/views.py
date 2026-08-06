@@ -14,6 +14,7 @@ is escaped on the way into HTML.
 from __future__ import annotations
 
 from html import escape
+from urllib.parse import urlsplit
 
 from .claims import AtomicClaim, ClaimRole, EvidenceRelation
 from .run import ResearchPack, RunStatus
@@ -57,6 +58,27 @@ def _claim_line(claim: AtomicClaim) -> str:
     marker = "**material**" if claim.material else "supporting"
     speaker = f" ({claim.speaker_label})" if claim.speaker_label else ""
     return f"{_ROLE_LABEL[claim.role]}{speaker} — {claim.statement} [{marker}]"
+
+
+def _safe_external_url(url: str) -> str | None:
+    """Return a linkable web URL, refusing active or ambiguous URI schemes."""
+    if any(ord(character) < 0x20 for character in url):
+        return None
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        return None
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        return None
+    return url
+
+
+def _markdown_text(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+
+
+def _markdown_destination(value: str) -> str:
+    return value.replace("\\", "%5C").replace("(", "%28").replace(")", "%29")
 
 
 def render_summary(pack: ResearchPack) -> str:
@@ -111,7 +133,17 @@ def render_summary(pack: ResearchPack) -> str:
                 f"{' `' + ref.span.artifact_id + '`' if ref.span.artifact_id else ''}{note}"
             )
         for ext in pack.ledger.external_for(claim.claim_id):
-            out.append(f"- {_RELATION_LABEL[ext.relation]} (external): [{ext.title}]({ext.url})")
+            safe_url = _safe_external_url(ext.url)
+            if safe_url is None:
+                out.append(
+                    f"- {_RELATION_LABEL[ext.relation]} (external): "
+                    f"{_markdown_text(ext.title)} (unsafe URL omitted)"
+                )
+            else:
+                out.append(
+                    f"- {_RELATION_LABEL[ext.relation]} (external): "
+                    f"[{_markdown_text(ext.title)}]({_markdown_destination(safe_url)})"
+                )
         out.append("")
 
     out.append("## Verification")
@@ -151,11 +183,16 @@ def render_report(pack: ResearchPack) -> str:
             f"</li>"
             for ref in pack.ledger.evidence_for(claim.claim_id)
         )
-        evidence += "".join(
-            f'<li>{e(_RELATION_LABEL[ext.relation])} (external): '
-            f'<a href="{e(ext.url)}" rel="nofollow noopener">{e(ext.title)}</a></li>'
-            for ext in pack.ledger.external_for(claim.claim_id)
-        )
+        for ext in pack.ledger.external_for(claim.claim_id):
+            safe_url = _safe_external_url(ext.url)
+            label = f"{e(_RELATION_LABEL[ext.relation])} (external): "
+            if safe_url is None:
+                evidence += f"<li>{label}{e(ext.title)} (unsafe URL omitted)</li>"
+            else:
+                evidence += (
+                    f'<li>{label}<a href="{e(safe_url)}" '
+                    f'rel="nofollow noopener">{e(ext.title)}</a></li>'
+                )
         rows.append(
             f"<tr><td><code>{e(claim.claim_id)}</code></td>"
             f"<td>{e(_ROLE_LABEL[claim.role])}</td>"
