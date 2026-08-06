@@ -64,8 +64,7 @@ class ExtractionEngine(Protocol):
 class ClaimExtractor(Protocol):
     """Turns extracted source material into an atomic claim ledger."""
 
-    def extract_claims(self, source: ExtractedSource) -> ClaimLedger:
-        ...
+    def extract_claims(self, source: ExtractedSource) -> ClaimLedger: ...
 
 
 class CheckOutcome(Enum):
@@ -105,5 +104,4 @@ class IndependentVerifier(Protocol):
     that never went to disk.
     """
 
-    def verify(self, pack_dir: Path) -> VerifierReport:
-        ...
+    def verify(self, pack_dir: Path) -> VerifierReport: ...

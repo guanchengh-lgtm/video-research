@@ -62,13 +62,20 @@ def descriptor(**overrides) -> SourceDescriptor:
     return SourceDescriptor(**{**base, **overrides})
 
 
-def window(start: int, end: int, *, speech=SpeechCoverage.CAPTURED,
-           visual=VisualObservation.OBSERVED, units=()) -> CoverageWindow:
+def window(
+    start: int,
+    end: int,
+    *,
+    speech=SpeechCoverage.CAPTURED,
+    visual=VisualObservation.OBSERVED,
+    units=(),
+) -> CoverageWindow:
     return CoverageWindow(TimeInterval(start, end), speech, visual, "test", tuple(units))
 
 
-def transcript(*segments: tuple[int, int], kind=TranscriptKind.NATIVE_CAPTIONS,
-               language="en") -> Transcript:
+def transcript(
+    *segments: tuple[int, int], kind=TranscriptKind.NATIVE_CAPTIONS, language="en"
+) -> Transcript:
     return Transcript(
         kind=kind,
         language=language,
@@ -111,9 +118,7 @@ def test_g2_accepts_a_transcript_reaching_the_end():
 
 
 def test_g2_accepts_an_asr_fallback():
-    result = gate_transcript(
-        transcript((0, 59000), kind=TranscriptKind.ASR_FALLBACK), 60000, "en"
-    )
+    result = gate_transcript(transcript((0, 59000), kind=TranscriptKind.ASR_FALLBACK), 60000, "en")
     assert result.outcome is GateOutcome.PASS
     assert "asr_fallback" in result.detail
 
@@ -175,8 +180,14 @@ def test_g3_notices_windows_out_of_order():
 def test_g4_treats_confirmed_silence_and_static_screen_as_real_observations():
     coverage = CoverageManifest(
         60000,
-        (window(0, 60000, speech=SpeechCoverage.SILENCE_CONFIRMED,
-                visual=VisualObservation.STATIC_CONFIRMED),),
+        (
+            window(
+                0,
+                60000,
+                speech=SpeechCoverage.SILENCE_CONFIRMED,
+                visual=VisualObservation.STATIC_CONFIRMED,
+            ),
+        ),
     )
     assert gate_observation(coverage).outcome is GateOutcome.PASS
 

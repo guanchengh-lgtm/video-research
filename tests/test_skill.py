@@ -93,8 +93,9 @@ def test_canonical_artifacts_declare_their_schema_version(run_fixture, tmp_path)
         assert payload["schema_version"] == SCHEMA_VERSION, name
 
 
-def test_out_of_envelope_source_fails_without_extracting(benchmark_payload, write_fixture,
-                                                         run_fixture):
+def test_out_of_envelope_source_fails_without_extracting(
+    benchmark_payload, write_fixture, run_fixture
+):
     benchmark_payload["source"]["source_kind"] = "live_stream"
     pack = run_fixture(write_fixture(benchmark_payload))
 
@@ -179,7 +180,7 @@ def test_rerunning_with_pinned_provenance_is_byte_identical(tmp_path, run_fixtur
     second = run_fixture(out=tmp_path / "b")
 
     for name in (RUN_FILE, COVERAGE_FILE, CLAIMS_FILE, SUMMARY_FILE, REPORT_FILE):
-        assert (tmp_path / "a" / name).read_text("utf-8") == (
-            tmp_path / "b" / name
-        ).read_text("utf-8"), name
+        assert (tmp_path / "a" / name).read_text("utf-8") == (tmp_path / "b" / name).read_text(
+            "utf-8"
+        ), name
     assert first.summary_markdown == second.summary_markdown

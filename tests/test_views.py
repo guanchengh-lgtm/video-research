@@ -32,8 +32,7 @@ def test_the_summary_leads_with_status_before_any_findings(run_fixture):
     assert status_at < claims_at
 
 
-def test_a_partial_run_lists_every_blocker_up_front(benchmark_payload, write_fixture,
-                                                    run_fixture):
+def test_a_partial_run_lists_every_blocker_up_front(benchmark_payload, write_fixture, run_fixture):
     benchmark_payload["windows"][2]["visual"] = "unobserved"
     pack = run_fixture(write_fixture(benchmark_payload))
 
@@ -45,8 +44,7 @@ def test_a_partial_run_lists_every_blocker_up_front(benchmark_payload, write_fix
         assert reason in pack.summary_markdown
 
 
-def test_a_failed_run_says_what_went_fatally_wrong(benchmark_payload, write_fixture,
-                                                   run_fixture):
+def test_a_failed_run_says_what_went_fatally_wrong(benchmark_payload, write_fixture, run_fixture):
     benchmark_payload["extraction_error"] = "audio track is missing"
     pack = run_fixture(write_fixture(benchmark_payload))
 
@@ -89,8 +87,7 @@ def test_views_never_read_the_clock(run_fixture):
     assert pack.run.created_at in pack.summary_markdown
 
 
-def test_source_text_is_escaped_in_the_html_report(benchmark_payload, write_fixture,
-                                                   run_fixture):
+def test_source_text_is_escaped_in_the_html_report(benchmark_payload, write_fixture, run_fixture):
     """Transcripts, titles, and OCR text are attacker-controlled."""
     benchmark_payload["source"]["title"] = "<script>alert('xss')</script>"
     benchmark_payload["claims"][0]["statement"] = "closing </td></tr></table><img src=x onerror=1>"
@@ -118,8 +115,7 @@ def test_external_reference_urls_use_a_web_scheme_allowlist(
 
 def test_https_external_references_remain_clickable(benchmark_payload, write_fixture, run_fixture):
     benchmark_payload["claims"][0]["external"] = [
-        {"url": "https://example.test/evidence", "title": "primary source",
-         "relation": "supports"}
+        {"url": "https://example.test/evidence", "title": "primary source", "relation": "supports"}
     ]
     pack = run_fixture(write_fixture(benchmark_payload))
 

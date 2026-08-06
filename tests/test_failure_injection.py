@@ -134,9 +134,7 @@ def test_injected_failure_never_produces_a_trusted_complete_run(
     ALL_DAMAGE[name](benchmark_payload)
     pack = run_fixture(write_fixture(benchmark_payload))
 
-    assert pack.status is not RunStatus.TRUSTED_COMPLETE, (
-        f"{name} produced false completeness"
-    )
+    assert pack.status is not RunStatus.TRUSTED_COMPLETE, f"{name} produced false completeness"
     assert pack.run.status_reasons, f"{name} degraded the run without saying why"
 
 
@@ -193,8 +191,7 @@ def test_non_material_undeclared_unit_link_fails_claim_entailment(
     assert pack.status is RunStatus.PARTIAL
     assert pack.ledger.covered_unit_ids() <= pack.coverage.declared_unit_ids()
     assert any(
-        "claim_entailment" in reason and "u-ghost" in reason
-        for reason in pack.run.status_reasons
+        "claim_entailment" in reason and "u-ghost" in reason for reason in pack.run.status_reasons
     )
 
 

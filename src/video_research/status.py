@@ -24,9 +24,7 @@ from .run import RunStatus
 #: A gate missing from the evidence is treated exactly like a gate that failed,
 #: so wiring up a new gate and forgetting to call it degrades the run instead of
 #: silently widening what counts as trusted.
-REQUIRED_GATES: frozenset[str] = frozenset(
-    {"G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9"}
-)
+REQUIRED_GATES: frozenset[str] = frozenset({"G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9"})
 
 
 @dataclass(frozen=True)

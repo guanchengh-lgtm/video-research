@@ -109,22 +109,34 @@ def research_video(
 
     descriptor = _safe_describe(engine, source_ref)
     if isinstance(descriptor, Diagnostic):
-        return _abandon(run_id, created_at, envelope, _unknown_source(source_ref), descriptor,
-                        output_dir)
+        return _abandon(
+            run_id, created_at, envelope, _unknown_source(source_ref), descriptor, output_dir
+        )
 
     envelope_gate = gate_envelope(envelope, descriptor)
     if envelope_gate.outcome is not GateOutcome.PASS:
         assert envelope_gate.diagnostic is not None
-        return _abandon(run_id, created_at, envelope, descriptor, envelope_gate.diagnostic,
-                        output_dir, gates=(envelope_gate,))
+        return _abandon(
+            run_id,
+            created_at,
+            envelope,
+            descriptor,
+            envelope_gate.diagnostic,
+            output_dir,
+            gates=(envelope_gate,),
+        )
 
     try:
         source = engine.extract(source_ref)
     except ExtractionError as exc:
         return _abandon(
-            run_id, created_at, envelope, descriptor,
+            run_id,
+            created_at,
+            envelope,
+            descriptor,
             Diagnostic(DiagnosticCode.EXTRACTION_FAILED, str(exc)),
-            output_dir, gates=(envelope_gate,),
+            output_dir,
+            gates=(envelope_gate,),
         )
 
     coverage = CoverageManifest(

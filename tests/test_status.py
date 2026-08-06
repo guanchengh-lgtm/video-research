@@ -123,9 +123,7 @@ def test_dropping_any_single_gate_forbids_completeness(dropped):
 def test_no_input_combination_yields_false_completeness():
     """Exhaustive: trusted-complete requires every single input to be clean."""
     diagnostic_sets = [(), (INFO,), (BLOCKER,), (FATAL,), (INFO, BLOCKER), (BLOCKER, FATAL)]
-    combinations = itertools.product(
-        diagnostic_sets, GateOutcome, CheckOutcome, [False, True]
-    )
+    combinations = itertools.product(diagnostic_sets, GateOutcome, CheckOutcome, [False, True])
 
     for diagnostics, gate_outcome, check_outcome, rescue in combinations:
         decision = decide((*diagnostics,), gates(gate_outcome), report(check_outcome), rescue)

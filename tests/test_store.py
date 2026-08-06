@@ -68,8 +68,7 @@ def test_serialization_is_byte_stable(run_fixture):
 
 
 @pytest.mark.parametrize("filename", [RUN_FILE, COVERAGE_FILE, CLAIMS_FILE])
-def test_an_unknown_schema_version_is_refused_rather_than_guessed(run_fixture, tmp_path,
-                                                                  filename):
+def test_an_unknown_schema_version_is_refused_rather_than_guessed(run_fixture, tmp_path, filename):
     out = tmp_path / "pack"
     run_fixture(out=out)
     payload = json.loads((out / filename).read_text(encoding="utf-8"))

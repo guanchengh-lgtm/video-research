@@ -40,12 +40,16 @@ Rationale and what is deliberately deferred:
 - **Views must not read the clock or a dict's insertion order.** Every
   time-dependent value comes from the run record; re-rendering unchanged canonical
   artifacts must be byte-identical, and `tests/test_views.py` checks it.
-- **All source-derived text is attacker-controlled** — transcripts, OCR, titles.
-  `views.render_report` escapes everything. Do not interpolate raw source text
-  into HTML.
+- **All source-derived text is attacker-controlled** — transcripts, OCR, titles,
+  external URLs. `views.render_report` escapes text and only linkifies `http`/
+  `https` external references. Do not interpolate raw source text into HTML.
 - **Canonical artifacts are versioned.** Bumping a shape means bumping
   `store.SCHEMA_VERSION` and widening `SUPPORTED_SCHEMA_VERSIONS`. Unknown versions
   are refused on read, never half-parsed.
+- **Declared material units live once on the coverage manifest.**
+  `coverage.json` → `material_units` is the recall oracle; G6 and the structural
+  verifier both re-read it. Window `material_unit_ids` only locate units on the
+  timeline.
 - **Failure injection mutates a copy of `tests/fixtures/talk_benchmark.json`.**
   Changing that fixture changes every injection test. If a test needs different
   source material, add a fixture rather than editing the golden one.

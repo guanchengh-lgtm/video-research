@@ -1,6 +1,6 @@
 # Implementation plan: assurance core (slice 1)
 
-Status: accepted
+Status: implemented (slice 1)
 Source spec: [`docs/specs/video-summary-skill.md`](../specs/video-summary-skill.md)
 Domain language: [`CONTEXT.md`](../../CONTEXT.md)
 Binding decision: [`docs/adr/0001`](../adr/0001-structured-source-generated-research-views.md)
@@ -84,10 +84,11 @@ research_video(source_ref, engine, extractor, verifier, config)
    │      · truncation vs duration
    │      fail ──► FALLBACK TRANSCRIPT (port)  ── unavailable ──► blocker
    │
-   ├─4 COVERAGE WINDOWS
+   ├─4 COVERAGE MANIFEST
    │      partition [0, duration] with no gap and no overlap
    │      each window: speech state · visual observation state
-   │                   · extraction method · material units
+   │                   · extraction method · unit locations
+   │      declared Material Content Units (the single recall oracle)
    │
    ├─5 CLAIM EXTRACTION (port)  ──► ClaimLedger
    │      atomic claims · roles · evidence references · relations
@@ -177,11 +178,14 @@ EvidenceReference     = claim_id + SourceSpan + EvidenceRelation
 **Atomic Claim**." The same span can therefore support one claim and qualify
 another, as two edges over one location.
 
-**Material-unit coverage needs an explicit link.** "Every **Material Content
-Unit** must appear in a **Trusted-Complete Run**" is unverifiable if units live
-on windows and evidence lives on claims with nothing joining them. Claims carry
-`covers_units: [MaterialUnitId]`, and G6 checks that every declared unit is
-named by at least one claim.
+**Material-unit coverage needs one oracle and an explicit link.** "Every
+**Material Content Unit** must appear in a **Trusted-Complete Run**" is
+unverifiable if declarations are scattered. Declared units are persisted once on
+the coverage manifest (`coverage.json` → `material_units`) — the single oracle
+both G6 and the structural verifier re-read from the pack. Window
+`material_unit_ids` only locate units on the timeline; they do not declare the
+oracle. Claims carry `covers_units: [MaterialUnitId]`, and G6 checks that every
+declared unit is named by at least one material claim.
 
 **Diagnostics are an enumerated table, not free text.** Each diagnostic has a
 stable code and a fixed severity. Severity is looked up, never chosen at the
@@ -193,6 +197,7 @@ call site, so "is this a warning or a blocker" cannot drift between callers.
 | `EXTRACTION_FAILED` | fatal |
 | `NO_USABLE_TRANSCRIPT` | fatal |
 | `CANONICAL_SCHEMA_INVALID` | fatal |
+| `VIEW_DERIVATION_FAILED` | blocker |
 | `TRANSCRIPT_TRUNCATED` | blocker |
 | `TRANSCRIPT_LANGUAGE_UNEXPECTED` | blocker |
 | `TRANSCRIPT_TIMING_NONMONOTONIC` | blocker |
@@ -230,7 +235,7 @@ land. A source that the envelope does not explicitly admit is out of it.
 | D2 | Timestamps are integer milliseconds | Float timelines produce spurious sub-nanosecond gaps in a partition check. Integer ms makes G3 exact. Raw engine timestamps are preserved alongside (spec: "**Evidence References** preserve raw timestamps"). |
 | D3 | Extraction, claim extraction, and verification are ports (Protocols) | Spec user story 35 and the provisional status of `mcp-video-analyzer`. Slice 1 ships fixture implementations; engine adapters land after the trial gate. |
 | D4 | The verifier receives the serialized pack re-read from disk | Makes "cold context, not the generator's reasoning" a property of the type signature rather than of prompt discipline. Also catches serialization drift. |
-| D5 | Status has exactly one producer, `assurance.status.decide` | The choke point that makes the negative acceptance criterion provable. |
+| D5 | Status has exactly one producer, `video_research.status.decide` | The choke point that makes the negative acceptance criterion provable. |
 | D6 | Canonical artifacts carry `schema_version` and validate on read | Spec user story 36; without it, migration is archaeology. |
 | D7 | Rendering takes every time-dependent value from the run record | `datetime.now()` inside a renderer breaks "rerendering from unchanged canonical artifacts is deterministic". |
 | D8 | `run_id` is generated once at run start and stored | A **Cold Rerun** must be a distinct run; a content-derived id would collide with the run it must not inherit from. |
@@ -289,7 +294,7 @@ CODE PATHS                                      OBSERVABLE BEHAVIOUR
   ├── extraction raises                         ── FAILED, no misleading summary
   └── no material units declared                ── PARTIAL (G6 UNVERIFIED)
 
-[+] assurance.status.decide
+[+] video_research.status.decide
   ├── fatal beats blocker                       ── FAILED
   ├── blocker beats all-pass gates              ── PARTIAL
   ├── any UNVERIFIED gate                       ── PARTIAL
@@ -299,14 +304,14 @@ CODE PATHS                                      OBSERVABLE BEHAVIOUR
       + exhaustive: no input combination containing a non-PASS
         yields TRUSTED_COMPLETE            (the False Completeness proof)
 
-[+] assurance.gates
+[+] video_research.gates
   ├── G3 gap / overlap / short tail / unsorted  ── FAIL with the interval named
   ├── G4 unobserved window                      ── FAIL
   ├── G5 material claim without evidence        ── FAIL
   ├── G5 evidence outside duration              ── FAIL
   └── G6 declared unit unrepresented            ── FAIL
 
-[+] pack.store
+[+] video_research.store
   ├── round trip                                ── identical canonical data
   ├── unknown schema_version                    ── raises, never silently reads
   └── cold rerun                                ── distinct run_id, no inherited findings
@@ -317,9 +322,11 @@ CODE PATHS                                      OBSERVABLE BEHAVIOUR
 
 FAILURE INJECTION (each must produce PARTIAL or FAILED, never TRUSTED_COMPLETE)
   truncated captions · wrong-language captions · timestamp drift
-  · ASR unavailable · missing final window · sparse visual coverage
-  · OCR failure · corrupt canonical cache · duplicate evidence
-  · unsupported source · verifier disagreement
+  · no transcript/fallback · missing final window · gap / overlap
+  · unobserved / missing visual coverage · unsupported material claim
+  · evidence out of range · unrepresented material unit
+  · units only on non-material claims · claim cites undeclared unit
+  · unsupported source · extraction failure · unknown duration
 ```
 
 ### Failure modes

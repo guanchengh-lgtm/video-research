@@ -111,8 +111,10 @@ def render_summary(pack: ResearchPack) -> str:
     out.append(f"- Timeline partitioned into {len(pack.coverage.windows)} coverage window(s)")
     language = run.transcript_language or "unknown"
     out.append(f"- Transcript: {run.transcript_kind.value} ({language})")
-    out.append(f"- Engine: {run.engine.name} {run.engine.version} (outbound data: "
-               f"{run.engine.outbound_data})")
+    out.append(
+        f"- Engine: {run.engine.name} {run.engine.version} (outbound data: "
+        f"{run.engine.outbound_data})"
+    )
     out.append("")
 
     material = pack.ledger.material_claims()
@@ -163,8 +165,9 @@ def render_summary(pack: ResearchPack) -> str:
 
     out.append("---")
     out.append("")
-    out.append(f"Run `{run.run_id}` started {run.created_at}, "
-               f"envelope `{run.envelope.envelope_id}`.")
+    out.append(
+        f"Run `{run.run_id}` started {run.created_at}, envelope `{run.envelope.envelope_id}`."
+    )
     out.append("Generated from canonical artifacts. Do not edit by hand.")
     out.append("")
     return "\n".join(out)

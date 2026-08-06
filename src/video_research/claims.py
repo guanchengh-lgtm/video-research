@@ -94,9 +94,7 @@ class ClaimLedger:
         return tuple(c for c in self.claims if c.material)
 
     def covered_unit_ids(self) -> frozenset[str]:
-        return frozenset(
-            uid for c in self.material_claims() for uid in c.covers_units
-        )
+        return frozenset(uid for c in self.material_claims() for uid in c.covers_units)
 
     def claim_ids(self) -> frozenset[str]:
         return frozenset(c.claim_id for c in self.claims)

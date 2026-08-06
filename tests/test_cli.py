@@ -50,11 +50,16 @@ def test_the_fixture_argument_is_required(capsys):
 
 
 def test_provenance_can_be_pinned_for_reproducible_output(tmp_path, capsys):
-    main([
-        "--fixture", str(BENCHMARK),
-        "--run-id", "run-pinned",
-        "--created-at", "2026-01-01T00:00:00+00:00",
-    ])
+    main(
+        [
+            "--fixture",
+            str(BENCHMARK),
+            "--run-id",
+            "run-pinned",
+            "--created-at",
+            "2026-01-01T00:00:00+00:00",
+        ]
+    )
     out = capsys.readouterr().out
     assert "run-pinned" in out
     assert "2026-01-01T00:00:00+00:00" in out

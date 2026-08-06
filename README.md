@@ -87,15 +87,15 @@ gate abstains and the run is partial. That is the honest answer, not a gap.
 ## Develop
 
 ```bash
-pytest         # 166 tests
+pytest
 ruff check .
 ```
 
 The primary test seam is the public entry point. Tests assert observable
 research-pack behaviour — artifacts, evidence, coverage, status, diagnostics —
 not internal structure. `tests/test_failure_injection.py` damages a copy of the
-golden fixture sixteen different ways and asserts no injected material failure
-ever produces a trusted-complete run.
+golden fixture in independent ways and asserts no injected material failure ever
+produces a trusted-complete run.
 
 ## Read next
 

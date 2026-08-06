@@ -169,10 +169,12 @@ class FixtureExtractionEngine:
                 )
                 for w in payload.get("windows", ())
             ),
-            frames=tuple(_span({**f, "kind": f.get("kind", "visual")})
-                         for f in payload.get("frames", ())),
-            ocr_spans=tuple(_span({**o, "kind": o.get("kind", "ocr")})
-                            for o in payload.get("ocr_spans", ())),
+            frames=tuple(
+                _span({**f, "kind": f.get("kind", "visual")}) for f in payload.get("frames", ())
+            ),
+            ocr_spans=tuple(
+                _span({**o, "kind": o.get("kind", "ocr")}) for o in payload.get("ocr_spans", ())
+            ),
             declared_material_units=tuple(
                 MaterialContentUnit(
                     unit_id=u["unit_id"],
@@ -277,8 +279,9 @@ class StructuralVerifier:
             )
 
         checks.append(
-            VerifierCheck("artifacts_readable", CheckOutcome.PASS,
-                          "canonical artifacts decoded from disk")
+            VerifierCheck(
+                "artifacts_readable", CheckOutcome.PASS, "canonical artifacts decoded from disk"
+            )
         )
 
         defects = coverage.partition_defects()
@@ -302,9 +305,7 @@ class StructuralVerifier:
         )
 
         unsupported = sorted(
-            c.claim_id
-            for c in ledger.material_claims()
-            if not ledger.evidence_for(c.claim_id)
+            c.claim_id for c in ledger.material_claims() if not ledger.evidence_for(c.claim_id)
         )
         checks.append(
             VerifierCheck(

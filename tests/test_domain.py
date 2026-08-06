@@ -66,10 +66,15 @@ def test_adjacent_windows_are_a_partition_not_an_overlap():
     coverage = CoverageManifest(
         2000,
         (
-            CoverageWindow(TimeInterval(0, 1000), SpeechCoverage.CAPTURED,
-                           VisualObservation.OBSERVED, "test"),
-            CoverageWindow(TimeInterval(1000, 2000), SpeechCoverage.CAPTURED,
-                           VisualObservation.OBSERVED, "test"),
+            CoverageWindow(
+                TimeInterval(0, 1000), SpeechCoverage.CAPTURED, VisualObservation.OBSERVED, "test"
+            ),
+            CoverageWindow(
+                TimeInterval(1000, 2000),
+                SpeechCoverage.CAPTURED,
+                VisualObservation.OBSERVED,
+                "test",
+            ),
         ),
     )
     assert coverage.partition_defects() == ()
@@ -78,8 +83,9 @@ def test_adjacent_windows_are_a_partition_not_an_overlap():
 def test_millisecond_timelines_do_not_invent_gaps():
     """Integer arithmetic: a thousand one-millisecond windows tile exactly."""
     windows = tuple(
-        CoverageWindow(TimeInterval(i, i + 1), SpeechCoverage.CAPTURED,
-                       VisualObservation.OBSERVED, "test")
+        CoverageWindow(
+            TimeInterval(i, i + 1), SpeechCoverage.CAPTURED, VisualObservation.OBSERVED, "test"
+        )
         for i in range(1000)
     )
     assert CoverageManifest(1000, windows).partition_defects() == ()
