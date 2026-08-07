@@ -4,6 +4,9 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+*.egg-info/
+build/
+dist/
 
 # Downloaded or generated video-research artifacts
 *.mp4
