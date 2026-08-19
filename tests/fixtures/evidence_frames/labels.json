@@ -138,5 +138,25 @@
   "dark_candlestick_chart.jpg": {
     "expected": "keep",
     "label": "dark_platform_candlestick_chart"
+  },
+  "line_chart_multi_series.jpg": {
+    "expected": "keep",
+    "label": "multi_series_line_chart"
+  },
+  "pie_donut_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_pie_donut_chart"
+  },
+  "stacked_bar_chart.jpg": {
+    "expected": "keep",
+    "label": "stacked_bar_chart"
+  },
+  "dark_theme_text_slide.jpg": {
+    "expected": "keep",
+    "label": "dark_theme_kpi_text_slide"
+  },
+  "light_theme_text_slide.jpg": {
+    "expected": "keep",
+    "label": "light_theme_kpi_text_slide_twin"
   }
 }

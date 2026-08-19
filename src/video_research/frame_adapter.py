@@ -675,7 +675,7 @@ def _has_evidence_structure(
     band_count = _structured_band_count(
         edge_values, width, height, config.strong_edge_threshold
     )
-    color_panel_mass, color_panel_bbox = _color_panel_stats(
+    color_panel_mass, color_panel_bbox, color_panel_count = _color_panel_stats(
         saturation_values, gray_values, width, height
     )
     series_columns, series_regularity = _column_series_stats(
@@ -733,35 +733,54 @@ def _has_evidence_structure(
     )
     has_bidir_chart = (
         canvas_fraction >= 0.28
-        and 0.07 <= structure_edges <= 0.22
-        and short_h_runs >= 45
-        and short_v_runs >= 28
-        and band_count >= 6
-        and short_h_mass >= 0.02
-        and short_v_mass >= 0.008
+        and 0.06 <= structure_edges <= 0.22
+        and short_h_runs >= 40
+        and short_v_runs >= 18
+        and band_count >= 5
+        and short_h_mass >= 0.018
+        and short_v_mass >= 0.005
         and not face_primary
         and has_chart_ink
     )
     has_color_chart = (
-        highsat_strong >= 0.04
+        highsat_strong >= 0.03
         and canvas_fraction >= 0.25
-        and 0.07 <= structure_edges <= 0.22
-        and short_h_runs >= 40
-        and short_v_runs >= 25
-        and band_count >= 5
+        and 0.05 <= structure_edges <= 0.22
+        and short_h_runs >= 35
+        and short_v_runs >= 20
+        and band_count >= 4
         and not face_primary
         and has_chart_ink
-        and (not has_face or color_panel_mass >= 0.10 or text_mass >= 0.008)
+        and (
+            not has_face
+            or color_panel_mass >= 0.08
+            or text_mass >= 0.008
+            or color_panel_count >= 3
+        )
     )
+    # Large filled chart blocks (heatmap/area) need strong color edges so
+    # clothing blobs on talking heads do not qualify. Multi-block pie/bar
+    # bodies are allowed only when the frame is not face-primary.
     has_color_panel = (
-        highsat_strong >= 0.08
-        and canvas_fraction >= 0.25
-        and structure_edges >= 0.10
-        and color_panel_mass >= 0.12
-        and color_panel_bbox <= 0.55
+        canvas_fraction >= 0.25
+        and 0.04 <= structure_edges <= 0.22
+        and (
+            (
+                color_panel_mass >= 0.12
+                and color_panel_bbox <= 0.60
+                and highsat_strong >= 0.08
+            )
+            or (
+                color_panel_count >= 4
+                and color_panel_mass >= 0.08
+                and color_panel_bbox <= 0.40
+                and highsat_strong >= 0.015
+                and not face_primary
+            )
+        )
     )
-    # Sparse axis-aligned series/candles: vertical-dominant regular columns
-    # plus labels, color bodies, or colored stroke edges — not organic texture.
+    # Axis-aligned series: candles/bars (vertical-dominant) or multi-series
+    # lines (horizontal-dominant) on a regular column grid — not bookshelves.
     sparse_color_bodies = (
         0.008 <= sat_fraction <= 0.08
         and series_columns >= 12
@@ -772,25 +791,40 @@ def _has_evidence_structure(
         and short_h_glyphs >= 6
         and series_columns >= 10
     )
-    has_series_chart = (
-        canvas_fraction >= 0.45
-        and 0.03 <= structure_edges <= 0.16
-        and short_v_runs >= 35
+    has_series_support = (
+        text_mass >= 0.004
+        or color_panel_mass >= 0.05
+        or sparse_color_bodies
+        or colored_edge_series
+    )
+    has_vertical_series = (
+        short_v_runs >= 35
         and short_v_mass >= 0.012
         and short_v_glyphs >= 20
         and v_glyph_fraction >= 0.50
         and short_h_runs >= 8
         and short_h_mass <= short_v_mass * 0.90
+    )
+    has_horizontal_series = (
+        short_h_runs >= 50
+        and short_h_mass >= 0.020
+        and short_h_glyphs >= 50
+        and h_glyph_fraction >= 0.70
+        and short_v_runs >= 15
+        and short_v_mass >= 0.0045
+        and short_h_mass >= short_v_mass * 1.2
+    )
+    has_series_chart = (
+        canvas_fraction >= 0.45
+        and 0.03 <= structure_edges <= 0.18
         and stroke_mass <= 0.09
         and band_count >= 3
         and not face_primary
         and series_columns >= 10
         and series_regularity >= 0.40
         and (
-            text_mass >= 0.004
-            or color_panel_mass >= 0.05
-            or sparse_color_bodies
-            or colored_edge_series
+            (has_vertical_series and has_series_support)
+            or has_horizontal_series
         )
     )
     return (
@@ -894,19 +928,26 @@ def _color_panel_stats(
     gray_values: list[int],
     width: int,
     height: int,
-) -> tuple[float, float]:
-    """Largest compact saturated panel mass and bbox fraction (chart blocks)."""
+) -> tuple[float, float, int]:
+    """Compact saturated panel mass, largest bbox fraction, and panel count.
+
+    Counts pie wedges, stacked-bar bodies, heatmaps, and area fills. Bright
+    saturated ink (sat up to 255) is included so orange/blue chart fills are not
+    clipped out of the skin-tone-adjacent mid-sat band.
+    """
 
     frame_area = width * height
     mask = tuple(
-        70 <= saturation_values[index] <= 180 and gray_values[index] > 40
+        saturation_values[index] >= 70 and gray_values[index] > 35
         for index in range(frame_area)
     )
     best_mass = 0.0
     best_bbox = 0.0
+    total_mass = 0.0
+    panel_count = 0
     for component in _connected_components(mask, width, height):
         mass = len(component) / frame_area
-        if mass < 0.05 or mass <= best_mass:
+        if mass < 0.015:
             continue
         xs = [index % width for index in component]
         ys = [index // width for index in component]
@@ -914,10 +955,16 @@ def _color_panel_stats(
         bbox_h = max(ys) - min(ys) + 1
         bbox_fraction = (bbox_w * bbox_h) / frame_area
         occupancy = len(component) / (bbox_w * bbox_h)
-        if occupancy >= 0.40 and bbox_fraction <= 0.70:
+        if occupancy < 0.35 or bbox_fraction > 0.70:
+            continue
+        panel_count += 1
+        total_mass += mass
+        if mass > best_mass:
             best_mass = mass
             best_bbox = bbox_fraction
-    return best_mass, best_bbox
+    # Prefer aggregate multi-panel mass when several compact blocks exist.
+    report_mass = total_mass if panel_count >= 3 else best_mass
+    return report_mass, best_bbox, panel_count
 
 
 def _column_series_stats(
@@ -966,20 +1013,48 @@ def _column_series_stats(
 def _dark_text_stats(
     gray_values: list[int], face_mask: list[bool], width: int, height: int
 ) -> tuple[float, int, int, int]:
-    """Organized ink-on-canvas glyph/label stats.
+    """Organized ink-on-canvas glyph/label stats (polarity-independent).
 
     Returns organized mass, component count, text-row count, and the size of
-    the largest row. Only stroke-like bars and baseline-aligned glyph lines on
-    a brighter surround count — arbitrary dark organic blobs do not.
+    the largest row. Dark-on-light and light-on-dark bars/glyphs both count when
+    they sit on a contrasting canvas surround. Arbitrary organic blobs do not.
     """
 
-    frame_area = width * height
-    dark_mask = tuple(
-        (not face_mask[index]) and gray_values[index] < 100
-        for index in range(frame_area)
+    dark = _ink_text_stats_for_polarity(
+        gray_values, face_mask, width, height, polarity="dark"
     )
+    light = _ink_text_stats_for_polarity(
+        gray_values, face_mask, width, height, polarity="light"
+    )
+    # Prefer the polarity with more organized structure; ties go to greater mass.
+    if light[2] > dark[2] or (light[2] == dark[2] and light[0] > dark[0]):
+        return light
+    return dark
+
+
+def _ink_text_stats_for_polarity(
+    gray_values: list[int],
+    face_mask: list[bool],
+    width: int,
+    height: int,
+    *,
+    polarity: str,
+) -> tuple[float, int, int, int]:
+    """Organized glyph/label stats for one ink polarity."""
+
+    frame_area = width * height
+    if polarity == "dark":
+        ink_mask = tuple(
+            (not face_mask[index]) and gray_values[index] < 100
+            for index in range(frame_area)
+        )
+    else:
+        ink_mask = tuple(
+            (not face_mask[index]) and gray_values[index] > 155
+            for index in range(frame_area)
+        )
     components: list[dict[str, float | int | bool]] = []
-    for component in _connected_components(dark_mask, width, height):
+    for component in _connected_components(ink_mask, width, height):
         if len(component) < 5 or len(component) > frame_area * 0.15:
             continue
         xs = [index % width for index in component]
@@ -1014,25 +1089,29 @@ def _dark_text_stats(
         )
         if not (is_bar or is_glyph):
             continue
-        if is_glyph and not is_bar:
-            outside: list[int] = []
-            for index in component:
-                x = index % width
-                y = index // width
-                for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                    nx = x + dx
-                    ny = y + dy
-                    if 0 <= nx < width and 0 <= ny < height:
-                        neighbor = ny * width + nx
-                        if not dark_mask[neighbor]:
-                            outside.append(neighbor)
-            outside = list(set(outside))
-            if len(outside) < 3:
+        outside: list[int] = []
+        for index in component:
+            x = index % width
+            y = index // width
+            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                nx = x + dx
+                ny = y + dy
+                if 0 <= nx < width and 0 <= ny < height:
+                    neighbor = ny * width + nx
+                    if not ink_mask[neighbor]:
+                        outside.append(neighbor)
+        outside = list(set(outside))
+        if len(outside) < 3:
+            continue
+        mean_in = sum(gray_values[index] for index in component) / len(component)
+        mean_out = sum(gray_values[index] for index in outside) / len(outside)
+        if polarity == "dark":
+            # Dark ink on a distinctly brighter canvas surround.
+            if mean_out < 110 or mean_out < mean_in + 30:
                 continue
-            mean_in = sum(gray_values[index] for index in component) / len(component)
-            mean_out = sum(gray_values[index] for index in outside) / len(outside)
-            # Glyph ink sits on a distinctly brighter canvas surround.
-            if mean_out < 120 or mean_out < mean_in + 35:
+        else:
+            # Light ink on a distinctly darker canvas surround.
+            if mean_out > 120 or mean_in < mean_out + 30:
                 continue
         components.append(
             {
@@ -1047,6 +1126,7 @@ def _dark_text_stats(
                 "bar": is_bar,
             }
         )
+
     if not components:
         return 0.0, 0, 0, 0
 

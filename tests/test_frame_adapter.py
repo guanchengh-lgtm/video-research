@@ -199,6 +199,78 @@ def test_thin_candlestick_charts_stay_eligible(filename):
     assert features.rejection_reason is None
 
 
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "line_chart_multi_series.jpg",
+        "pie_donut_chart.jpg",
+        "stacked_bar_chart.jpg",
+    ),
+)
+def test_ordinary_axis_aligned_charts_stay_eligible(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "line_chart_multi_series.jpg",
+        "pie_donut_chart.jpg",
+        "stacked_bar_chart.jpg",
+        "dark_theme_text_slide.jpg",
+        "light_theme_text_slide.jpg",
+    ),
+)
+def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
+    selection = select_frame(
+        PresentationSegment(0, 5_000),
+        (FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / filename),),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == filename
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_dark_and_light_theme_text_slides_both_stay_eligible():
+    config = FrameSelectionConfig()
+    dark = analyze_frame(CORPUS / "dark_theme_text_slide.jpg", config)
+    light = analyze_frame(CORPUS / "light_theme_text_slide.jpg", config)
+
+    assert dark.eligible
+    assert light.eligible
+    assert dark.rejection_reason is None
+    assert light.rejection_reason is None
+
+
+def test_dark_and_light_theme_twins_are_both_selectable_evidence():
+    selection = select_frame(
+        PresentationSegment(0, 10_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "dark_theme_text_slide.jpg",
+            ),
+            FrameCandidate(
+                FrameProbe(2_000, "post_cut"),
+                CORPUS / "light_theme_text_slide.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name in {
+        "dark_theme_text_slide.jpg",
+        "light_theme_text_slide.jpg",
+    }
+    assert selection.observation is VisualObservation.OBSERVED
+
+
 def test_warm_heatmap_chart_stays_eligible():
     features = analyze_frame(CORPUS / "warm_heatmap_chart.jpg", FrameSelectionConfig())
 
@@ -330,6 +402,11 @@ def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
         "orange_area_chart.jpg",
         "compact_amber_heatmap.jpg",
         "orb_0730_face_dominant.jpg",
+        "line_chart_multi_series.jpg",
+        "pie_donut_chart.jpg",
+        "stacked_bar_chart.jpg",
+        "dark_theme_text_slide.jpg",
+        "light_theme_text_slide.jpg",
     ),
 )
 def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
@@ -379,6 +456,10 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "gex_dark_chart_with_webcam_pip.jpg",
         "volatility_0058_bright_slide.jpg",
         "thin_candlestick_chart.jpg",
+        "line_chart_multi_series.jpg",
+        "pie_donut_chart.jpg",
+        "stacked_bar_chart.jpg",
+        "dark_theme_text_slide.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(
