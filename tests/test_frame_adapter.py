@@ -177,6 +177,13 @@ def test_edge_dense_non_data_static_is_rejected():
         ("appliance_keypad_grid.jpg", "no_evidence"),
         ("face_plus_keypad.jpg", "face_dominant"),
         ("face_plus_panel_grid.jpg", "face_dominant"),
+        ("org_chart_boxes.jpg", "no_evidence"),
+        ("decision_tree_boxes.jpg", "no_evidence"),
+        ("er_entity_boxes.jpg", "no_evidence"),
+        ("er_entity_dense.jpg", "no_evidence"),
+        ("face_plus_org_chart.jpg", "face_dominant"),
+        ("face_plus_decision_tree.jpg", "face_dominant"),
+        ("face_plus_er_diagram.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -487,6 +494,9 @@ def test_face_plus_color_stalls_talking_head_is_hard_dropped():
         "face_plus_kanban.jpg",
         "face_plus_keypad.jpg",
         "face_plus_panel_grid.jpg",
+        "face_plus_org_chart.jpg",
+        "face_plus_decision_tree.jpg",
+        "face_plus_er_diagram.jpg",
     ),
 )
 def test_face_plus_dense_nongraph_backgrounds_are_hard_dropped(filename):
@@ -554,6 +564,22 @@ def test_furniture_free_bar_and_ui_chrome_are_rejected(filename):
 
 
 @pytest.mark.parametrize(
+    "filename",
+    (
+        "org_chart_boxes.jpg",
+        "decision_tree_boxes.jpg",
+        "er_entity_boxes.jpg",
+        "er_entity_dense.jpg",
+    ),
+)
+def test_node_box_connector_diagrams_are_not_chart_evidence(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "no_evidence"
+
+
+@pytest.mark.parametrize(
     "distractor_name",
     (
         "busy_calendar_events.jpg",
@@ -565,6 +591,10 @@ def test_furniture_free_bar_and_ui_chrome_are_rejected(filename):
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
         "appliance_keypad_grid.jpg",
+        "org_chart_boxes.jpg",
+        "decision_tree_boxes.jpg",
+        "er_entity_boxes.jpg",
+        "er_entity_dense.jpg",
     ),
 )
 def test_dense_nongraph_stable_pair_loses_to_later_settled_chart(distractor_name):
@@ -810,6 +840,13 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "appliance_keypad_grid.jpg",
         "face_plus_keypad.jpg",
         "face_plus_panel_grid.jpg",
+        "org_chart_boxes.jpg",
+        "decision_tree_boxes.jpg",
+        "er_entity_boxes.jpg",
+        "er_entity_dense.jpg",
+        "face_plus_org_chart.jpg",
+        "face_plus_decision_tree.jpg",
+        "face_plus_er_diagram.jpg",
     ),
 )
 @pytest.mark.parametrize(

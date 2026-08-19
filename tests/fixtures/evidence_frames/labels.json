@@ -394,5 +394,33 @@
   "face_plus_panel_grid.jpg": {
     "expected": "reject",
     "label": "face_plus_industrial_panel_talking_head"
+  },
+  "org_chart_boxes.jpg": {
+    "expected": "reject",
+    "label": "org_chart_node_box_diagram_no_chart"
+  },
+  "decision_tree_boxes.jpg": {
+    "expected": "reject",
+    "label": "decision_tree_node_box_diagram_no_chart"
+  },
+  "er_entity_boxes.jpg": {
+    "expected": "reject",
+    "label": "er_entity_box_diagram_no_chart"
+  },
+  "er_entity_dense.jpg": {
+    "expected": "reject",
+    "label": "er_entity_dense_attribute_bars_no_chart"
+  },
+  "face_plus_org_chart.jpg": {
+    "expected": "reject",
+    "label": "face_plus_org_chart_talking_head"
+  },
+  "face_plus_decision_tree.jpg": {
+    "expected": "reject",
+    "label": "face_plus_decision_tree_talking_head"
+  },
+  "face_plus_er_diagram.jpg": {
+    "expected": "reject",
+    "label": "face_plus_er_diagram_talking_head"
   }
 }

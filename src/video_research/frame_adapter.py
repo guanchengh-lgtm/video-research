@@ -749,10 +749,13 @@ def _has_evidence_structure(
         and v_glyph_fraction >= 0.30
         and stroke_mass <= stroke_ink_cap
     )
+    # Real glyph ink only — solid bar-chip rows (gc==0) are not labels.
+    has_real_glyphs = glyph_components >= 1
     has_label_ink = (
         text_mass >= 0.008
         and has_text_organization
         and has_glyph_label_structure
+        and has_real_glyphs
         and not has_uniform_bar_sheet
     )
     has_panel_ink = color_panel_mass >= 0.10
@@ -768,8 +771,12 @@ def _has_evidence_structure(
 
     # Semantic furniture: labels, axis pairs, or dense platform chart structure.
     # Bare outlines/maps/module grids without this are not data furniture.
+    # Bar-chip rows without glyph components are not label furniture.
     has_label_furniture = has_label_ink or (
-        text_mass >= 0.008 and text_components >= 3 and max_text_row >= 2
+        text_mass >= 0.008
+        and text_components >= 3
+        and max_text_row >= 2
+        and has_real_glyphs
     )
     has_axis_lines = (
         long_h_mass >= 0.006
@@ -856,13 +863,21 @@ def _has_evidence_structure(
         or has_axis_lines
         or has_platform_data_marks
     )
-    # Connector-heavy box diagrams / flowcharts: many long rules, bar chips only.
+    # Node-box + connector diagrams (org/flow/ER): long box rules and/or
+    # bar-chip labels inside frames. Not pure axis charts (no bar-chip text).
     has_box_diagram_geometry = (
-        long_h_runs >= 30
-        and long_h_mass >= 0.035
-        and glyph_components == 0
+        not has_real_glyphs
         and text_mass < 0.14
-        and short_h_glyphs < 70
+        and (
+            (long_h_runs >= 30 and long_h_mass >= 0.035)
+            or (
+                long_h_runs >= 12
+                and long_h_mass >= 0.025
+                and text_mass >= 0.008
+                and has_text_organization
+                and max_text_row >= 2
+            )
+        )
     )
 
     # Glyph/label slides — multi-glyph or varied bar lines, not stripe sheets
@@ -990,6 +1005,7 @@ def _has_evidence_structure(
         and short_v_mass >= 0.005
         and not face_primary
         and not has_color_tile_grid
+        and not has_box_diagram_geometry
         and (has_stroke_ink or has_label_ink)
         and has_bidir_semantic_furniture
     )
@@ -1002,6 +1018,7 @@ def _has_evidence_structure(
         and band_count >= 4
         and not face_primary
         and not has_color_tile_grid
+        and not has_box_diagram_geometry
         and has_chart_ink
         and has_bidir_semantic_furniture
         and (
@@ -1100,8 +1117,12 @@ def _has_evidence_structure(
         and short_h_glyphs >= 6
         and series_columns >= 10
     )
-    # Bar-only stripe text / tiny face panels are not series support.
-    has_series_label_support = text_mass >= 0.004 and has_glyph_label_structure
+    # Bar-chip rows alone are not series label support — need real glyphs.
+    has_series_label_support = (
+        text_mass >= 0.004
+        and has_glyph_label_structure
+        and has_real_glyphs
+    )
     has_series_support = (
         has_series_label_support
         or color_panel_mass >= 0.10
@@ -1149,6 +1170,7 @@ def _has_evidence_structure(
         and band_count >= 3
         and not face_primary
         and not has_color_tile_grid
+        and not has_box_diagram_geometry
         and series_columns >= 10
         and series_regularity >= 0.40
         and has_series_data_furniture
