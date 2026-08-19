@@ -72,7 +72,7 @@ def test_interval_pipeline_records_provenance_and_unique_candidates(
     )
 
     assert manifest["manifest_version"] == 2
-    assert manifest["config"]["version"] == "evidence-frame-v2"
+    assert manifest["config"]["version"] == "evidence-frame-v3"
     assert len(manifest["segments"]) == 3
     assert manifest["frames"]
     assert len(extracted_paths) == len(set(extracted_paths))

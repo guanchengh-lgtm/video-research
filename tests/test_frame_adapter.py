@@ -51,8 +51,24 @@ def test_dark_colorful_chart_is_not_rejected_by_saturation():
     assert features.eligible
 
 
-def test_face_dominant_mixed_slide_is_not_forced_as_evidence():
+def test_text_card_with_webcam_pip_stays_eligible():
     features = analyze_frame(CORPUS / "orb_0730_face_dominant.jpg", FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+    assert features.largest_warm_component_fraction >= 0.03
+
+
+def test_chart_with_webcam_pip_stays_eligible():
+    features = analyze_frame(CORPUS / "chart_with_webcam_pip.jpg", FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+    assert features.largest_warm_component_fraction >= 0.01
+
+
+def test_pure_talking_head_is_hard_dropped():
+    features = analyze_frame(CORPUS / "orb_0652_talking_head.jpg", FrameSelectionConfig())
 
     assert not features.eligible
     assert features.rejection_reason == "face_dominant"
@@ -85,13 +101,52 @@ def test_settled_slide_wins_over_boundary_talking_head():
     assert selection.manifest()["selected_timestamp_ms"] == 414_000
 
 
-def test_all_rejected_candidates_leave_visual_unobserved():
-    segment = PresentationSegment(450_000, 453_000)
+def test_clean_slide_beats_text_card_with_webcam_pip():
+    config = FrameSelectionConfig()
+    segment = PresentationSegment(450_000, 455_000)
+    candidates = (
+        FrameCandidate(
+            FrameProbe(450_500, "post_cut"), CORPUS / "orb_0730_face_dominant.jpg"
+        ),
+        FrameCandidate(
+            FrameProbe(452_000, "post_cut"), CORPUS / "orb_0654_settled_slide.jpg"
+        ),
+    )
+
+    selection = select_frame(segment, candidates, config)
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "orb_0654_settled_slide.jpg"
+
+
+def test_mixed_chart_pip_is_selectable_when_it_is_the_only_evidence():
+    segment = PresentationSegment(28_000, 32_000)
     selection = select_frame(
         segment,
         (
             FrameCandidate(
-                FrameProbe(450_500, "post_cut"), CORPUS / "orb_0730_face_dominant.jpg"
+                FrameProbe(28_500, "post_cut"), CORPUS / "chart_with_webcam_pip.jpg"
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "chart_with_webcam_pip.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_all_rejected_candidates_leave_visual_unobserved():
+    segment = PresentationSegment(412_000, 415_000)
+    selection = select_frame(
+        segment,
+        (
+            FrameCandidate(
+                FrameProbe(412_500, "post_cut"), CORPUS / "orb_0652_talking_head.jpg"
+            ),
+            FrameCandidate(
+                FrameProbe(413_000, "post_cut"),
+                CORPUS / "orb_0652_closeup_talking_head.jpg",
             ),
         ),
         FrameSelectionConfig(),
@@ -108,7 +163,7 @@ def test_rejected_corpus_frame_degrades_public_run_to_partial(tmp_path):
 
     def selections(source):
         accepted = CORPUS / "orb_0654_settled_slide.jpg"
-        rejected = CORPUS / "orb_0730_face_dominant.jpg"
+        rejected = CORPUS / "orb_0652_talking_head.jpg"
         results = []
         for index, window in enumerate(source.windows):
             segment = PresentationSegment(window.interval.start_ms, window.interval.end_ms)

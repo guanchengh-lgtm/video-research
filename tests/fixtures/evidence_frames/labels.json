@@ -3,6 +3,10 @@
     "expected": "keep",
     "label": "dark_colorful_platform_chart"
   },
+  "chart_with_webcam_pip.jpg": {
+    "expected": "keep",
+    "label": "chart_with_webcam_pip"
+  },
   "orb_0652_talking_head.jpg": {
     "expected": "reject",
     "label": "full_talking_head"
@@ -16,8 +20,8 @@
     "label": "settled_tariff_slide"
   },
   "orb_0730_face_dominant.jpg": {
-    "expected": "reject",
-    "label": "face_dominant_mixed_slide"
+    "expected": "keep",
+    "label": "text_card_with_webcam_pip"
   },
   "orb_0918_grayscale_chart.jpg": {
     "expected": "keep",

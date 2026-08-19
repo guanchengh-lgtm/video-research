@@ -24,7 +24,7 @@ from .timeline import SourceSpan, SpanKind, TimeInterval, VisualObservation
 class FrameSelectionConfig:
     """Versioned, immutable frame-selection policy."""
 
-    version: str = "evidence-frame-v2"
+    version: str = "evidence-frame-v3"
     probe_offsets_ms: tuple[int, ...] = (500, 1_000, 2_000)
     next_cut_guard_ms: int = 100
     periodic_interval_ms: int = 15_000
@@ -32,10 +32,22 @@ class FrameSelectionConfig:
     min_variance: float = 35.0
     min_edge_fraction: float = 0.02
     edge_threshold: int = 24
-    face_component_min_fraction: float = 0.03
+    strong_edge_threshold: int = 55
+    face_component_min_fraction: float = 0.01
     face_component_max_bbox_fraction: float = 0.45
-    face_component_min_occupancy: float = 0.45
+    face_component_min_occupancy: float = 0.40
+    face_internal_edge_fraction: float = 0.08
+    face_internal_variance: float = 250.0
+    face_primary_mass_fraction: float = 0.08
+    face_primary_largest_fraction: float = 0.12
     small_face_component_fraction: float = 0.01
+    evidence_canvas_fraction: float = 0.40
+    evidence_canvas_with_text_fraction: float = 0.28
+    evidence_text_on_canvas_fraction: float = 0.045
+    evidence_lowsat_strong_edge_fraction: float = 0.12
+    mixed_face_score_penalty: float = 0.12
+    face_primary_score_penalty: float = 0.25
+    mixed_face_score_ceiling: float = 0.75
     stable_difference: float = 18.0
 
     def manifest(self) -> dict[str, object]:
@@ -185,7 +197,7 @@ class FrameSelection:
     selected: CandidateEvaluation | None
     evaluations: tuple[CandidateEvaluation, ...] = field(default_factory=tuple)
     reason: str = ""
-    config_version: str = "evidence-frame-v2"
+    config_version: str = "evidence-frame-v3"
 
     @property
     def observation(self) -> VisualObservation:
@@ -254,32 +266,66 @@ def probes_for_segment(
 
 
 def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
-    """Measure bounded full-frame evidence and face-proxy signals."""
+    """Measure bounded full-frame evidence and face-proxy signals.
+
+    Hard-drop only pure talking-head frames with no chart/slide/text structure.
+    Mixed frames that carry evidence stay eligible; a face/PIP penalty lets any
+    clean peer win without discarding the only settled visual demonstration.
+    """
 
     with Image.open(path) as source:
         image = source.convert("RGB").resize(config.analysis_size)
 
     grayscale = image.convert("L")
+    gray_values = list(grayscale.get_flattened_data())
     variance = float(ImageStat.Stat(grayscale).var[0])
-    saturation = float(ImageStat.Stat(image.convert("HSV").split()[1]).mean[0])
+    hsv = image.convert("HSV")
+    saturation_channel = list(hsv.split()[1].get_flattened_data())
+    saturation = float(sum(saturation_channel) / len(saturation_channel))
     edges = grayscale.filter(ImageFilter.FIND_EDGES)
     edge_values = list(edges.get_flattened_data())
     width, height = image.size
-    interior = [
-        edge_values[y * width + x]
+    frame_area = width * height
+    interior_indexes = [
+        y * width + x
         for y in range(1, height - 1)
         for x in range(1, width - 1)
     ]
-    edge_fraction = sum(value > config.edge_threshold for value in interior) / len(interior)
+    edge_fraction = (
+        sum(edge_values[index] > config.edge_threshold for index in interior_indexes)
+        / len(interior_indexes)
+    )
 
     warm_mask = tuple(_is_skin_tone(pixel) for pixel in image.get_flattened_data())
     warm_fraction = sum(warm_mask) / len(warm_mask)
-    component_fraction, bbox_fraction, component_occupancy = _largest_component(
-        warm_mask, width, height
+    face_regions = _face_like_regions(
+        warm_mask, gray_values, edge_values, width, height, config
     )
-
-    face_dominant = (
-        component_fraction >= config.face_component_min_fraction
+    component_fraction, bbox_fraction, component_occupancy = _largest_region_stats(
+        face_regions
+    )
+    if component_fraction == 0.0:
+        component_fraction, bbox_fraction, component_occupancy = _largest_component(
+            warm_mask, width, height
+        )
+    face_mass = sum(region.fraction for region in face_regions)
+    face_mask = _region_bbox_mask(face_regions, width, height, frame_area)
+    has_evidence = _has_evidence_structure(
+        gray_values,
+        edge_values,
+        saturation_channel,
+        warm_mask,
+        face_mask,
+        interior_indexes,
+        width,
+        config,
+    )
+    face_primary = (
+        face_mass >= config.face_primary_mass_fraction
+        or component_fraction >= config.face_primary_largest_fraction
+    )
+    has_face = face_mass >= config.small_face_component_fraction or (
+        component_fraction >= config.small_face_component_fraction
         and (
             bbox_fraction <= config.face_component_max_bbox_fraction
             or component_occupancy >= config.face_component_min_occupancy
@@ -290,7 +336,7 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
     )
     if blank_or_transition:
         rejection = "blank_or_transition"
-    elif face_dominant:
+    elif face_primary and not has_evidence:
         rejection = "face_dominant"
     else:
         rejection = None
@@ -299,12 +345,17 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
     contrast = min(variance / 3_000.0, 1.0)
     non_face = 1.0 - min(warm_fraction, 0.5)
     evidence_score = 0.55 * structure + 0.30 * contrast + 0.15 * non_face
-    if (
-        component_fraction >= config.small_face_component_fraction
-        and not face_dominant
-        and bbox_fraction <= config.face_component_max_bbox_fraction
-    ):
-        evidence_score -= 0.12
+    if rejection is None and has_face:
+        if face_primary:
+            evidence_score = (
+                min(evidence_score, config.mixed_face_score_ceiling)
+                - config.face_primary_score_penalty
+            )
+        else:
+            evidence_score = (
+                min(evidence_score, config.mixed_face_score_ceiling)
+                - config.mixed_face_score_penalty
+            )
 
     return FrameFeatures(
         variance=round(variance, 3),
@@ -412,11 +463,21 @@ def _is_skin_tone(pixel: tuple[int, int, int]) -> bool:
     )
 
 
-def _largest_component(
-    mask: tuple[bool, ...], width: int, height: int
-) -> tuple[float, float, float]:
+@dataclass(frozen=True)
+class _FaceRegion:
+    indexes: tuple[int, ...]
+    fraction: float
+    bbox_fraction: float
+    occupancy: float
+    min_x: int
+    max_x: int
+    min_y: int
+    max_y: int
+
+
+def _connected_components(mask: tuple[bool, ...], width: int, height: int) -> list[list[int]]:
     seen: set[int] = set()
-    largest: list[int] = []
+    components: list[list[int]] = []
     for index, active in enumerate(mask):
         if not active or index in seen:
             continue
@@ -438,13 +499,159 @@ def _largest_component(
                 if neighbor >= 0 and mask[neighbor] and neighbor not in seen:
                     seen.add(neighbor)
                     pending.append(neighbor)
-        if len(component) > len(largest):
-            largest = component
+        components.append(component)
+    return components
 
-    if not largest:
+
+def _largest_component(
+    mask: tuple[bool, ...], width: int, height: int
+) -> tuple[float, float, float]:
+    components = _connected_components(mask, width, height)
+    if not components:
         return 0.0, 0.0, 0.0
+    largest = max(components, key=len)
     xs = [index % width for index in largest]
     ys = [index // width for index in largest]
     bbox_area = (max(xs) - min(xs) + 1) * (max(ys) - min(ys) + 1)
     frame_area = width * height
     return len(largest) / frame_area, bbox_area / frame_area, len(largest) / bbox_area
+
+
+def _face_like_regions(
+    warm_mask: tuple[bool, ...],
+    gray_values: list[int],
+    edge_values: list[int],
+    width: int,
+    height: int,
+    config: FrameSelectionConfig,
+) -> tuple[_FaceRegion, ...]:
+    """Compact, filled, textured warm regions — faces, not flat beige slides."""
+
+    frame_area = width * height
+    regions: list[_FaceRegion] = []
+    for component in _connected_components(warm_mask, width, height):
+        fraction = len(component) / frame_area
+        if fraction < config.face_component_min_fraction:
+            continue
+        xs = [index % width for index in component]
+        ys = [index // width for index in component]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        bbox_area = (max_x - min_x + 1) * (max_y - min_y + 1)
+        bbox_fraction = bbox_area / frame_area
+        occupancy = len(component) / bbox_area
+        compact = (
+            bbox_fraction <= config.face_component_max_bbox_fraction
+            or occupancy >= config.face_component_min_occupancy
+        )
+        if not compact or occupancy < config.face_component_min_occupancy:
+            continue
+        internal_edges = sum(
+            edge_values[index] > config.edge_threshold for index in component
+        ) / len(component)
+        mean_gray = sum(gray_values[index] for index in component) / len(component)
+        internal_variance = sum(
+            (gray_values[index] - mean_gray) ** 2 for index in component
+        ) / len(component)
+        textured = (
+            internal_edges >= config.face_internal_edge_fraction
+            or internal_variance >= config.face_internal_variance
+        )
+        if not textured:
+            continue
+        regions.append(
+            _FaceRegion(
+                indexes=tuple(component),
+                fraction=fraction,
+                bbox_fraction=bbox_fraction,
+                occupancy=occupancy,
+                min_x=min_x,
+                max_x=max_x,
+                min_y=min_y,
+                max_y=max_y,
+            )
+        )
+    return tuple(sorted(regions, key=lambda region: region.fraction, reverse=True))
+
+
+def _largest_region_stats(
+    regions: tuple[_FaceRegion, ...],
+) -> tuple[float, float, float]:
+    if not regions:
+        return 0.0, 0.0, 0.0
+    largest = regions[0]
+    return largest.fraction, largest.bbox_fraction, largest.occupancy
+
+
+def _region_bbox_mask(
+    regions: tuple[_FaceRegion, ...], width: int, height: int, frame_area: int
+) -> list[bool]:
+    mask = [False] * frame_area
+    for region in regions:
+        for y in range(region.min_y, region.max_y + 1):
+            row = y * width
+            for x in range(region.min_x, region.max_x + 1):
+                mask[row + x] = True
+    return mask
+
+
+def _has_evidence_structure(
+    gray_values: list[int],
+    edge_values: list[int],
+    saturation_values: list[int],
+    warm_mask: tuple[bool, ...],
+    face_mask: list[bool],
+    interior_indexes: list[int],
+    width: int,
+    config: FrameSelectionConfig,
+) -> bool:
+    """True when non-face pixels look like a chart, slide, numbers, or labeled UI."""
+
+    frame_area = len(gray_values)
+    canvas_pixels = 0
+    for index, gray in enumerate(gray_values):
+        if face_mask[index] or warm_mask[index]:
+            continue
+        if edge_values[index] >= 12:
+            continue
+        if gray < 45 or gray > 210 or saturation_values[index] < 35:
+            canvas_pixels += 1
+    canvas_fraction = canvas_pixels / frame_area
+
+    text_on_canvas = 0
+    height = frame_area // width
+    for y in range(1, height - 1):
+        row = y * width
+        for x in range(1, width - 1):
+            index = row + x
+            if face_mask[index] or warm_mask[index] or edge_values[index] <= 48:
+                continue
+            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                neighbor = (y + dy) * width + (x + dx)
+                if face_mask[neighbor] or warm_mask[neighbor]:
+                    continue
+                neighbor_gray = gray_values[neighbor]
+                if edge_values[neighbor] < 12 and (
+                    neighbor_gray < 50
+                    or neighbor_gray > 200
+                    or saturation_values[neighbor] < 35
+                ):
+                    text_on_canvas += 1
+                    break
+    text_fraction = text_on_canvas / frame_area
+
+    lowsat_strong = sum(
+        edge_values[index] > config.strong_edge_threshold
+        and saturation_values[index] < 90
+        and not face_mask[index]
+        for index in interior_indexes
+    ) / len(interior_indexes)
+
+    return (
+        canvas_fraction >= config.evidence_canvas_fraction
+        or (
+            canvas_fraction >= config.evidence_canvas_with_text_fraction
+            and text_fraction >= config.evidence_text_on_canvas_fraction
+        )
+        or lowsat_strong >= config.evidence_lowsat_strong_edge_fraction
+    )
