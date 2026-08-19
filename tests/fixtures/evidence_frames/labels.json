@@ -210,5 +210,41 @@
   "face_plus_vertical_bars.jpg": {
     "expected": "reject",
     "label": "face_plus_vertical_bar_talking_head"
+  },
+  "logo_wall.jpg": {
+    "expected": "reject",
+    "label": "logo_wall_edge_scatter_no_chart"
+  },
+  "led_dot_matrix.jpg": {
+    "expected": "reject",
+    "label": "led_dot_matrix_no_chart"
+  },
+  "simple_map_outline.jpg": {
+    "expected": "reject",
+    "label": "simple_map_outline_no_chart"
+  },
+  "qr_module_grid.jpg": {
+    "expected": "reject",
+    "label": "qr_module_grid_no_glyph_text"
+  },
+  "code_editor_stack.jpg": {
+    "expected": "reject",
+    "label": "code_editor_line_stack_no_chart"
+  },
+  "box_whisker_chart.jpg": {
+    "expected": "keep",
+    "label": "box_whisker_chart_with_axes"
+  },
+  "labeled_treemap.jpg": {
+    "expected": "keep",
+    "label": "labeled_treemap_partition_chart"
+  },
+  "sparse_scatter_chart.jpg": {
+    "expected": "keep",
+    "label": "sparse_scatter_with_axes"
+  },
+  "dense_numeric_table.jpg": {
+    "expected": "keep",
+    "label": "dense_numeric_table_with_header"
   }
 }

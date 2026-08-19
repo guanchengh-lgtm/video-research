@@ -146,6 +146,11 @@ def test_edge_dense_non_data_static_is_rejected():
         ("piano_keys_vertical.jpg", "no_evidence"),
         ("zebra_vertical_stripes.jpg", "no_evidence"),
         ("face_plus_vertical_bars.jpg", "face_dominant"),
+        ("logo_wall.jpg", "no_evidence"),
+        ("led_dot_matrix.jpg", "no_evidence"),
+        ("simple_map_outline.jpg", "no_evidence"),
+        ("qr_module_grid.jpg", "no_evidence"),
+        ("code_editor_stack.jpg", "no_evidence"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -242,6 +247,10 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "corporate_blue_area_chart.jpg",
         "simple_blue_histogram.jpg",
         "finance_volume_histogram.jpg",
+        "box_whisker_chart.jpg",
+        "labeled_treemap.jpg",
+        "sparse_scatter_chart.jpg",
+        "dense_numeric_table.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -293,6 +302,10 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "corporate_blue_area_chart.jpg",
         "simple_blue_histogram.jpg",
         "finance_volume_histogram.jpg",
+        "box_whisker_chart.jpg",
+        "labeled_treemap.jpg",
+        "sparse_scatter_chart.jpg",
+        "dense_numeric_table.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -482,6 +495,10 @@ def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
         "corporate_blue_area_chart.jpg",
         "simple_blue_histogram.jpg",
         "finance_volume_histogram.jpg",
+        "box_whisker_chart.jpg",
+        "labeled_treemap.jpg",
+        "sparse_scatter_chart.jpg",
+        "dense_numeric_table.jpg",
     ),
 )
 def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
@@ -528,6 +545,11 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "piano_keys_vertical.jpg",
         "zebra_vertical_stripes.jpg",
         "face_plus_vertical_bars.jpg",
+        "logo_wall.jpg",
+        "led_dot_matrix.jpg",
+        "simple_map_outline.jpg",
+        "qr_module_grid.jpg",
+        "code_editor_stack.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -548,6 +570,10 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "corporate_blue_area_chart.jpg",
         "simple_blue_histogram.jpg",
         "finance_volume_histogram.jpg",
+        "box_whisker_chart.jpg",
+        "labeled_treemap.jpg",
+        "sparse_scatter_chart.jpg",
+        "dense_numeric_table.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(
