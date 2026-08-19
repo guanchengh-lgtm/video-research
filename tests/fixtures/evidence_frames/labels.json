@@ -30,5 +30,17 @@
   "volatility_0058_bright_slide.jpg": {
     "expected": "keep",
     "label": "bright_text_slide"
+  },
+  "studio_talking_head.jpg": {
+    "expected": "reject",
+    "label": "studio_talking_head_no_data"
+  },
+  "small_face_no_data.jpg": {
+    "expected": "reject",
+    "label": "small_face_plain_backdrop"
+  },
+  "beige_text_slide.jpg": {
+    "expected": "keep",
+    "label": "beige_tan_text_slide"
   }
 }

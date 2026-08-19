@@ -74,6 +74,27 @@ def test_pure_talking_head_is_hard_dropped():
     assert features.rejection_reason == "face_dominant"
 
 
+def test_studio_talking_head_without_data_is_hard_dropped():
+    features = analyze_frame(CORPUS / "studio_talking_head.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+
+
+def test_small_face_without_data_is_hard_dropped():
+    features = analyze_frame(CORPUS / "small_face_no_data.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+
+
+def test_beige_text_slide_stays_eligible():
+    features = analyze_frame(CORPUS / "beige_text_slide.jpg", FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+
+
 def test_closeup_talking_head_cannot_escape_face_dominance_bbox_limit():
     features = analyze_frame(
         CORPUS / "orb_0652_closeup_talking_head.jpg", FrameSelectionConfig()

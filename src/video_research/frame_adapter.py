@@ -41,10 +41,12 @@ class FrameSelectionConfig:
     face_primary_mass_fraction: float = 0.08
     face_primary_largest_fraction: float = 0.12
     small_face_component_fraction: float = 0.01
-    evidence_canvas_fraction: float = 0.40
     evidence_canvas_with_text_fraction: float = 0.28
     evidence_text_on_canvas_fraction: float = 0.045
     evidence_lowsat_strong_edge_fraction: float = 0.12
+    evidence_canvas_with_structure_fraction: float = 0.40
+    evidence_structure_edge_fraction: float = 0.08
+    face_component_max_slide_bbox_fraction: float = 0.85
     mixed_face_score_penalty: float = 0.12
     face_primary_score_penalty: float = 0.25
     mixed_face_score_ceiling: float = 0.75
@@ -322,21 +324,18 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
     )
     face_primary = (
         face_mass >= config.face_primary_mass_fraction
-        or component_fraction >= config.face_primary_largest_fraction
-    )
-    has_face = face_mass >= config.small_face_component_fraction or (
-        component_fraction >= config.small_face_component_fraction
-        and (
-            bbox_fraction <= config.face_component_max_bbox_fraction
-            or component_occupancy >= config.face_component_min_occupancy
+        or (
+            face_mass > 0.0
+            and component_fraction >= config.face_primary_largest_fraction
         )
     )
+    has_face = face_mass >= config.small_face_component_fraction
     blank_or_transition = (
         variance < config.min_variance or edge_fraction < config.min_edge_fraction
     )
     if blank_or_transition:
         rejection = "blank_or_transition"
-    elif face_primary and not has_evidence:
+    elif has_face and not has_evidence:
         rejection = "face_dominant"
     else:
         rejection = None
@@ -540,11 +539,11 @@ def _face_like_regions(
         bbox_area = (max_x - min_x + 1) * (max_y - min_y + 1)
         bbox_fraction = bbox_area / frame_area
         occupancy = len(component) / bbox_area
-        compact = (
-            bbox_fraction <= config.face_component_max_bbox_fraction
-            or occupancy >= config.face_component_min_occupancy
-        )
-        if not compact or occupancy < config.face_component_min_occupancy:
+        if bbox_fraction >= config.face_component_max_slide_bbox_fraction:
+            continue
+        compact = bbox_fraction <= config.face_component_max_bbox_fraction
+        closeup = occupancy >= config.face_component_min_occupancy
+        if occupancy < config.face_component_min_occupancy or not (compact or closeup):
             continue
         internal_edges = sum(
             edge_values[index] > config.edge_threshold for index in component
@@ -595,6 +594,24 @@ def _region_bbox_mask(
     return mask
 
 
+def _is_canvas_pixel(
+    index: int,
+    gray_values: list[int],
+    edge_values: list[int],
+    saturation_values: list[int],
+    warm_mask: tuple[bool, ...],
+    face_mask: list[bool],
+) -> bool:
+    """Flat non-face backdrop, including warm beige slide fills outside faces."""
+
+    if face_mask[index] or edge_values[index] >= 12:
+        return False
+    if warm_mask[index]:
+        return True
+    gray = gray_values[index]
+    return gray < 45 or gray > 210 or saturation_values[index] < 35
+
+
 def _has_evidence_structure(
     gray_values: list[int],
     edge_values: list[int],
@@ -605,17 +622,23 @@ def _has_evidence_structure(
     width: int,
     config: FrameSelectionConfig,
 ) -> bool:
-    """True when non-face pixels look like a chart, slide, numbers, or labeled UI."""
+    """True when non-face pixels look like a chart, slide, numbers, or labeled UI.
+
+    Empty canvas alone is not evidence. Positive text/chart/UI structure is required.
+    """
 
     frame_area = len(gray_values)
-    canvas_pixels = 0
-    for index, gray in enumerate(gray_values):
-        if face_mask[index] or warm_mask[index]:
-            continue
-        if edge_values[index] >= 12:
-            continue
-        if gray < 45 or gray > 210 or saturation_values[index] < 35:
-            canvas_pixels += 1
+    canvas_pixels = sum(
+        _is_canvas_pixel(
+            index,
+            gray_values,
+            edge_values,
+            saturation_values,
+            warm_mask,
+            face_mask,
+        )
+        for index in range(frame_area)
+    )
     canvas_fraction = canvas_pixels / frame_area
 
     text_on_canvas = 0
@@ -628,13 +651,13 @@ def _has_evidence_structure(
                 continue
             for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                 neighbor = (y + dy) * width + (x + dx)
-                if face_mask[neighbor] or warm_mask[neighbor]:
-                    continue
-                neighbor_gray = gray_values[neighbor]
-                if edge_values[neighbor] < 12 and (
-                    neighbor_gray < 50
-                    or neighbor_gray > 200
-                    or saturation_values[neighbor] < 35
+                if _is_canvas_pixel(
+                    neighbor,
+                    gray_values,
+                    edge_values,
+                    saturation_values,
+                    warm_mask,
+                    face_mask,
                 ):
                     text_on_canvas += 1
                     break
@@ -646,12 +669,19 @@ def _has_evidence_structure(
         and not face_mask[index]
         for index in interior_indexes
     ) / len(interior_indexes)
+    structure_edges = sum(
+        edge_values[index] > config.strong_edge_threshold and not face_mask[index]
+        for index in interior_indexes
+    ) / len(interior_indexes)
 
     return (
-        canvas_fraction >= config.evidence_canvas_fraction
-        or (
+        (
             canvas_fraction >= config.evidence_canvas_with_text_fraction
             and text_fraction >= config.evidence_text_on_canvas_fraction
         )
         or lowsat_strong >= config.evidence_lowsat_strong_edge_fraction
+        or (
+            canvas_fraction >= config.evidence_canvas_with_structure_fraction
+            and structure_edges >= config.evidence_structure_edge_fraction
+        )
     )
