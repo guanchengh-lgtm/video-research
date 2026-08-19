@@ -840,6 +840,16 @@ def _has_evidence_structure(
         )
     )
     platform_se_hi = 0.24 if dark_theme else 0.22
+    # Mid-sat multi-color bodies without axes/labels are schedule-board chrome,
+    # not platform chart ink (GEX/dark colorful stays via high sat).
+    has_unlabeled_sparse_color = (
+        0.02 <= sat_fraction <= 0.15
+        and highsat_strong < 0.012
+        and not has_strong_axes
+        and not has_label_furniture
+        and not has_real_glyphs
+        and color_panel_mass < 0.10
+    )
     # Platform marks need axes/labels, or stroke-platform series ink without
     # bulk unlabeled color-panel fills (choropleth/blob maps).
     has_platform_data_marks = (
@@ -850,10 +860,19 @@ def _has_evidence_structure(
         and has_stroke_ink
         and color_panel_mass < 0.15
         and short_h_runs >= 80
+        and not has_unlabeled_sparse_color
         and (
-            has_axis_lines
-            or has_label_furniture
+            has_label_furniture
             or (sat_fraction >= 0.40 and highsat_strong >= 0.015)
+            or (
+                has_axis_lines
+                and (
+                    has_strong_axes
+                    or has_real_glyphs
+                    or sat_fraction < 0.02
+                    or highsat_strong >= 0.015
+                )
+            )
             or (band_count >= 12 and series_columns >= 40)
         )
     )
@@ -1006,6 +1025,13 @@ def _has_evidence_structure(
             and stroke_mass <= axis_bidir_stroke_cap
             and has_axis_data_marks
             and not has_box_diagram_geometry
+            and not has_unlabeled_sparse_color
+            and (
+                has_strong_axes
+                or has_real_glyphs
+                or sat_fraction < 0.02
+                or highsat_strong >= 0.015
+            )
         )
     )
     structure_hi = 0.30 if dark_theme else 0.22
@@ -1121,10 +1147,17 @@ def _has_evidence_structure(
     )
     # Axis-aligned series: candles/bars (vertical-dominant) or multi-series
     # lines (horizontal-dominant) on a regular column grid — not maps/outlines.
+    # Sparse color bodies need strong axes or real tick/glyph/legend marks;
+    # a title plus unlabeled schedule bars is not series support.
     sparse_color_bodies = (
         0.008 <= sat_fraction <= 0.08
         and series_columns >= 30
         and series_regularity >= 0.55
+        and (
+            has_strong_axes
+            or has_label_furniture
+            or has_real_glyphs
+        )
     )
     colored_edge_series = (
         highsat_strong >= 0.012
@@ -1212,12 +1245,15 @@ def _has_evidence_structure(
         and (
             (has_label_furniture and has_real_glyphs)
             or (
-                # Axis-tied whisker/point marks — not multi-row card chrome.
+                # Axis-tied whisker/point marks — not multi-row card chrome
+                # or unlabeled horizontal color-bar schedule boards.
                 has_series_marks
                 and series_columns >= 40
                 and series_regularity >= 0.55
                 and short_h_glyphs >= 60
                 and short_v_glyphs >= 80
+                and short_v_mass >= short_h_mass * 0.85
+                and sat_fraction <= 0.05
                 and max_text_row <= 1
                 and text_mass < 0.02
             )
@@ -1226,7 +1262,10 @@ def _has_evidence_structure(
                 and has_series_marks
                 and series_columns >= 40
                 and series_regularity >= 0.55
+                and short_v_mass >= short_h_mass * 0.85
+                and sat_fraction <= 0.05
                 and max_text_row <= 1
+                and (has_label_furniture or has_real_glyphs)
             )
         )
     )
@@ -1302,10 +1341,20 @@ def _has_evidence_structure(
             or (
                 has_axis_furniture
                 and (
-                    text_mass >= 0.008
+                    # Title-only mass is not bar label furniture.
+                    (
+                        text_mass >= 0.008
+                        and has_real_glyphs
+                        and has_glyph_label_structure
+                    )
                     or (
                         color_panel_mass >= 0.05
                         and color_panel_count >= 3
+                        and (
+                            has_strong_axes
+                            or has_label_furniture
+                            or has_real_glyphs
+                        )
                     )
                 )
             )

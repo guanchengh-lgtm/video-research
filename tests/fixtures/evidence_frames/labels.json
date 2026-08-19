@@ -438,5 +438,13 @@
   "gantt_timeline_chart.jpg": {
     "expected": "keep",
     "label": "gantt_timeline_chart"
+  },
+  "unlabeled_colorbar_schedule_board.jpg": {
+    "expected": "reject",
+    "label": "unlabeled_colorbar_schedule_board_no_chart"
+  },
+  "face_plus_colorbar_schedule_board.jpg": {
+    "expected": "reject",
+    "label": "face_plus_colorbar_schedule_board_talking_head"
   }
 }

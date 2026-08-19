@@ -186,6 +186,8 @@ def test_edge_dense_non_data_static_is_rejected():
         ("face_plus_org_chart.jpg", "face_dominant"),
         ("face_plus_decision_tree.jpg", "face_dominant"),
         ("face_plus_er_diagram.jpg", "face_dominant"),
+        ("unlabeled_colorbar_schedule_board.jpg", "no_evidence"),
+        ("face_plus_colorbar_schedule_board.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -499,6 +501,7 @@ def test_face_plus_color_stalls_talking_head_is_hard_dropped():
         "face_plus_org_chart.jpg",
         "face_plus_decision_tree.jpg",
         "face_plus_er_diagram.jpg",
+        "face_plus_colorbar_schedule_board.jpg",
     ),
 )
 def test_face_plus_dense_nongraph_backgrounds_are_hard_dropped(filename):
@@ -577,6 +580,7 @@ def test_labeled_radial_kpi_and_form_frames_are_selectable_alone(filename):
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
         "appliance_keypad_grid.jpg",
+        "unlabeled_colorbar_schedule_board.jpg",
     ),
 )
 def test_furniture_free_bar_and_ui_chrome_are_rejected(filename):
@@ -584,6 +588,76 @@ def test_furniture_free_bar_and_ui_chrome_are_rejected(filename):
 
     assert not features.eligible
     assert features.rejection_reason == "no_evidence"
+
+
+def test_unlabeled_colorbar_schedule_board_is_not_chart_evidence():
+    features = analyze_frame(
+        CORPUS / "unlabeled_colorbar_schedule_board.jpg", FrameSelectionConfig()
+    )
+
+    assert not features.eligible
+    assert features.rejection_reason == "no_evidence"
+
+
+def test_face_plus_colorbar_schedule_board_is_hard_dropped():
+    features = analyze_frame(
+        CORPUS / "face_plus_colorbar_schedule_board.jpg", FrameSelectionConfig()
+    )
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+    assert features.compact_face_fraction >= 0.01
+
+
+@pytest.mark.parametrize(
+    "evidence_name",
+    (
+        "gex_0028_dark_colorful_chart.jpg",
+        "beige_text_slide.jpg",
+        "chart_with_webcam_pip.jpg",
+    ),
+)
+def test_unlabeled_colorbar_schedule_loses_to_settled_evidence(evidence_name):
+    selection = select_frame(
+        PresentationSegment(0, 10_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "unlabeled_colorbar_schedule_board.jpg",
+            ),
+            FrameCandidate(FrameProbe(2_000, "post_cut"), CORPUS / evidence_name),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == evidence_name
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_unlabeled_colorbar_stable_pair_loses_to_later_gex():
+    selection = select_frame(
+        PresentationSegment(0, 12_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "unlabeled_colorbar_schedule_board.jpg",
+            ),
+            FrameCandidate(
+                FrameProbe(1_500, "post_cut"),
+                CORPUS / "unlabeled_colorbar_schedule_board.jpg",
+            ),
+            FrameCandidate(
+                FrameProbe(8_000, "post_cut"),
+                CORPUS / "gex_0028_dark_colorful_chart.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "gex_0028_dark_colorful_chart.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
 
 
 @pytest.mark.parametrize(
@@ -620,6 +694,7 @@ def test_node_box_connector_diagrams_are_not_chart_evidence(filename):
         "decision_tree_boxes.jpg",
         "er_entity_boxes.jpg",
         "er_entity_dense.jpg",
+        "unlabeled_colorbar_schedule_board.jpg",
     ),
 )
 def test_dense_nongraph_stable_pair_loses_to_later_settled_chart(distractor_name):
@@ -876,6 +951,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "face_plus_org_chart.jpg",
         "face_plus_decision_tree.jpg",
         "face_plus_er_diagram.jpg",
+        "unlabeled_colorbar_schedule_board.jpg",
+        "face_plus_colorbar_schedule_board.jpg",
     ),
 )
 @pytest.mark.parametrize(
