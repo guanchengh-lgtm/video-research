@@ -1,0 +1,30 @@
+{
+  "gex_0028_dark_colorful_chart.jpg": {
+    "expected": "keep",
+    "label": "dark_colorful_platform_chart"
+  },
+  "orb_0652_talking_head.jpg": {
+    "expected": "reject",
+    "label": "full_talking_head"
+  },
+  "orb_0652_closeup_talking_head.jpg": {
+    "expected": "reject",
+    "label": "closeup_talking_head_boundary"
+  },
+  "orb_0654_settled_slide.jpg": {
+    "expected": "keep",
+    "label": "settled_tariff_slide"
+  },
+  "orb_0730_face_dominant.jpg": {
+    "expected": "reject",
+    "label": "face_dominant_mixed_slide"
+  },
+  "orb_0918_grayscale_chart.jpg": {
+    "expected": "keep",
+    "label": "grayscale_chart"
+  },
+  "volatility_0058_bright_slide.jpg": {
+    "expected": "keep",
+    "label": "bright_text_slide"
+  }
+}

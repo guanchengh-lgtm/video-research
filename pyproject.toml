@@ -15,7 +15,8 @@ dependencies = []
 video-research = "video_research.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=7.4", "ruff>=0.6"]
+frames = ["Pillow>=12.0"]
+dev = ["Pillow>=12.0", "pytest>=7.4", "ruff>=0.6"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

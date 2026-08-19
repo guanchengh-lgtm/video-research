@@ -24,6 +24,13 @@ pip install -e ".[dev]"
 
 Python 3.11 or newer. The core has no dependencies.
 
+The optional Evidence Frame extractor uses Pillow and local `ffmpeg`/`ffprobe`:
+
+```bash
+pip install -e ".[frames]"
+python tools/extract_evidence_frames.py https://youtu.be/VIDEO_ID ./frames
+```
+
 ## Use
 
 ```bash

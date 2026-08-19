@@ -58,6 +58,12 @@ def missing_visual_coverage(payload: dict[str, Any]) -> None:
     payload["windows"][0]["visual"] = "unobserved"
 
 
+def no_eligible_material_visual(payload: dict[str, Any]) -> None:
+    """Frame selection rejected every candidate for the final material unit."""
+    payload["windows"][-1]["visual"] = "unobserved"
+    payload["frames"] = [frame for frame in payload["frames"] if frame["start_ms"] < 450000]
+
+
 def material_claim_without_evidence(payload: dict[str, Any]) -> None:
     payload["claims"][0]["evidence"] = []
 
@@ -108,6 +114,7 @@ DEGRADING: dict[str, Damage] = {
     "overlapping_windows": overlapping_windows,
     "unobserved_window": unobserved_window,
     "missing_visual_coverage": missing_visual_coverage,
+    "no_eligible_material_visual": no_eligible_material_visual,
     "material_claim_without_evidence": material_claim_without_evidence,
     "evidence_outside_the_source": evidence_outside_the_source,
     "unrepresented_material_unit": unrepresented_material_unit,
