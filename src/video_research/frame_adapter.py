@@ -654,7 +654,7 @@ def _has_evidence_structure(
         edge_values[index] > config.strong_edge_threshold
         for index in interior_indexes
     ) / len(interior_indexes)
-    text_mass, text_components = _dark_text_stats(
+    text_mass, text_components, text_rows, max_text_row = _dark_text_stats(
         gray_values, face_mask, width, height
     )
     # Chart/UI stroke runs ignore face_mask so corner PIP cannot erase ink.
@@ -678,29 +678,43 @@ def _has_evidence_structure(
     color_panel_mass, color_panel_bbox = _color_panel_stats(
         saturation_values, gray_values, width, height
     )
+    series_columns, series_regularity = _column_series_stats(
+        edge_values, width, height, config.strong_edge_threshold
+    )
     h_glyph_fraction = (short_h_glyphs / short_h_runs) if short_h_runs else 0.0
     v_glyph_fraction = (short_v_glyphs / short_v_runs) if short_v_runs else 0.0
-    # Bare periodic grids are mostly medium-length runs; charts add short ink.
+    stroke_mass = short_h_mass + short_v_mass
+    sat_fraction = sum(
+        saturation_values[index] >= 90 for index in interior_indexes
+    ) / len(interior_indexes)
+    # Chart ink needs organized strokes/labels/panels — not bare highsat edges.
     has_chart_ink = (
         (
             short_h_glyphs >= 18
             and short_v_glyphs >= 12
             and h_glyph_fraction >= 0.30
             and v_glyph_fraction >= 0.30
+            and stroke_mass <= 0.12
         )
         or text_mass >= 0.008
-        or highsat_strong >= 0.03
+        or color_panel_mass >= 0.10
+    )
+    # Bars (multi-line or high mass) or elongated multi-glyph baselines.
+    has_text_organization = text_rows >= 1 and (
+        max_text_row >= 4 or text_mass >= 0.045 or text_rows >= 3
     )
 
     has_slide_text = (
         text_mass >= 0.02
         and text_components >= 3
+        and has_text_organization
         and canvas_fraction >= 0.40
         and 0.05 <= structure_edges <= 0.25
     )
     has_organized_text = (
         text_mass >= 0.008
         and text_components >= 4
+        and has_text_organization
         and canvas_fraction >= 0.18
         and 0.06 <= structure_edges <= 0.26
         and short_h_runs >= 35
@@ -710,6 +724,7 @@ def _has_evidence_structure(
     has_content_slide = (
         text_mass >= 0.012
         and text_components >= 6
+        and has_text_organization
         and canvas_fraction >= 0.15
         and 0.08 <= structure_edges <= 0.40
         and short_h_runs >= 80
@@ -718,7 +733,7 @@ def _has_evidence_structure(
     )
     has_bidir_chart = (
         canvas_fraction >= 0.28
-        and 0.07 <= structure_edges <= 0.20
+        and 0.07 <= structure_edges <= 0.22
         and short_h_runs >= 45
         and short_v_runs >= 28
         and band_count >= 6
@@ -745,6 +760,39 @@ def _has_evidence_structure(
         and color_panel_mass >= 0.12
         and color_panel_bbox <= 0.55
     )
+    # Sparse axis-aligned series/candles: vertical-dominant regular columns
+    # plus labels, color bodies, or colored stroke edges — not organic texture.
+    sparse_color_bodies = (
+        0.008 <= sat_fraction <= 0.08
+        and series_columns >= 12
+        and series_regularity >= 0.45
+    )
+    colored_edge_series = (
+        highsat_strong >= 0.012
+        and short_h_glyphs >= 6
+        and series_columns >= 10
+    )
+    has_series_chart = (
+        canvas_fraction >= 0.45
+        and 0.03 <= structure_edges <= 0.16
+        and short_v_runs >= 35
+        and short_v_mass >= 0.012
+        and short_v_glyphs >= 20
+        and v_glyph_fraction >= 0.50
+        and short_h_runs >= 8
+        and short_h_mass <= short_v_mass * 0.90
+        and stroke_mass <= 0.09
+        and band_count >= 3
+        and not face_primary
+        and series_columns >= 10
+        and series_regularity >= 0.40
+        and (
+            text_mass >= 0.004
+            or color_panel_mass >= 0.05
+            or sparse_color_bodies
+            or colored_edge_series
+        )
+    )
     return (
         has_slide_text
         or has_organized_text
@@ -752,6 +800,7 @@ def _has_evidence_structure(
         or has_bidir_chart
         or has_color_chart
         or has_color_panel
+        or has_series_chart
     )
 
 
@@ -871,25 +920,74 @@ def _color_panel_stats(
     return best_mass, best_bbox
 
 
+def _column_series_stats(
+    edge_values: list[int], width: int, height: int, threshold: int
+) -> tuple[int, float]:
+    """Count active vertical stroke columns and spacing regularity.
+
+    Candlestick/series charts place short vertical ink on a regular x grid.
+    Scattered organic texture rarely keeps tight gap regularity.
+    """
+
+    columns: list[int] = []
+    for x in range(3, width - 3):
+        runs = 0
+        run = 0
+        mass = 0
+        for y in range(3, height - 3):
+            if edge_values[y * width + x] > threshold:
+                run += 1
+            else:
+                if 3 <= run <= 22:
+                    runs += 1
+                    mass += run
+                run = 0
+        if 3 <= run <= 22:
+            runs += 1
+            mass += run
+        if runs >= 1 and mass >= 3:
+            columns.append(x)
+    if len(columns) < 8:
+        return len(columns), 0.0
+    gaps = [columns[index + 1] - columns[index] for index in range(len(columns) - 1)]
+    small_gaps = [gap for gap in gaps if 1 <= gap <= 10]
+    if len(small_gaps) < 6:
+        return len(columns), 0.0
+    counts: dict[int, int] = {}
+    for gap in small_gaps:
+        counts[gap] = counts.get(gap, 0) + 1
+    mode_gap = max(counts.items(), key=lambda item: item[1])[0]
+    regular = sum(
+        count for gap, count in counts.items() if abs(gap - mode_gap) <= 1
+    )
+    return len(columns), regular / len(small_gaps)
+
+
 def _dark_text_stats(
     gray_values: list[int], face_mask: list[bool], width: int, height: int
-) -> tuple[float, int]:
-    """Mass and count of compact dark components that look like glyphs."""
+) -> tuple[float, int, int, int]:
+    """Organized ink-on-canvas glyph/label stats.
+
+    Returns organized mass, component count, text-row count, and the size of
+    the largest row. Only stroke-like bars and baseline-aligned glyph lines on
+    a brighter surround count — arbitrary dark organic blobs do not.
+    """
 
     frame_area = width * height
     dark_mask = tuple(
         (not face_mask[index]) and gray_values[index] < 100
         for index in range(frame_area)
     )
-    text_pixels = 0
-    text_components = 0
+    components: list[dict[str, float | int | bool]] = []
     for component in _connected_components(dark_mask, width, height):
         if len(component) < 5 or len(component) > frame_area * 0.15:
             continue
         xs = [index % width for index in component]
         ys = [index // width for index in component]
-        bbox_width = max(xs) - min(xs) + 1
-        bbox_height = max(ys) - min(ys) + 1
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        bbox_width = max_x - min_x + 1
+        bbox_height = max_y - min_y + 1
         if bbox_width >= width * 0.7 and bbox_height <= 3:
             continue
         if bbox_height < 3 or bbox_width < 3:
@@ -904,6 +1002,106 @@ def _dark_text_stats(
         ) / len(component)
         if border_touch > 0.45:
             continue
-        text_pixels += len(component)
-        text_components += 1
-    return text_pixels / frame_area, text_components
+        aspect = max(bbox_width, bbox_height) / max(min(bbox_width, bbox_height), 1)
+        occupancy = len(component) / (bbox_width * bbox_height)
+        is_bar = aspect >= 4.0 and min(bbox_width, bbox_height) <= 14
+        is_glyph = (
+            len(component) <= 70
+            and bbox_height <= 12
+            and bbox_width <= 16
+            and occupancy <= 0.85
+            and (aspect >= 1.15 or occupancy <= 0.70)
+        )
+        if not (is_bar or is_glyph):
+            continue
+        if is_glyph and not is_bar:
+            outside: list[int] = []
+            for index in component:
+                x = index % width
+                y = index // width
+                for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                    nx = x + dx
+                    ny = y + dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        neighbor = ny * width + nx
+                        if not dark_mask[neighbor]:
+                            outside.append(neighbor)
+            outside = list(set(outside))
+            if len(outside) < 3:
+                continue
+            mean_in = sum(gray_values[index] for index in component) / len(component)
+            mean_out = sum(gray_values[index] for index in outside) / len(outside)
+            # Glyph ink sits on a distinctly brighter canvas surround.
+            if mean_out < 120 or mean_out < mean_in + 35:
+                continue
+        components.append(
+            {
+                "n": len(component),
+                "cx": sum(xs) / len(xs),
+                "cy": sum(ys) / len(ys),
+                "bh": bbox_height,
+                "min_x": min_x,
+                "max_x": max_x,
+                "min_y": min_y,
+                "max_y": max_y,
+                "bar": is_bar,
+            }
+        )
+    if not components:
+        return 0.0, 0, 0, 0
+
+    used: set[int] = set()
+    organized_pixels = 0
+    organized_components = 0
+    rows = 0
+    max_row = 0
+    for index, component in enumerate(components):
+        if index in used:
+            continue
+        row = [
+            other
+            for other, candidate in enumerate(components)
+            if abs(float(candidate["cy"]) - float(component["cy"])) <= 6
+        ]
+        used.update(row)
+        row_components = [components[other] for other in row]
+        accepted = False
+        if any(bool(item["bar"]) for item in row_components):
+            accepted = True
+        else:
+            span_x = (
+                max(int(item["max_x"]) for item in row_components)
+                - min(int(item["min_x"]) for item in row_components)
+                + 1
+            )
+            span_y = (
+                max(int(item["max_y"]) for item in row_components)
+                - min(int(item["min_y"]) for item in row_components)
+                + 1
+            )
+            heights = [int(item["bh"]) for item in row_components]
+            height_ok = max(heights) <= min(heights) + 4
+            if (
+                len(row_components) >= 4
+                and height_ok
+                and span_x >= max(22, 3.0 * span_y)
+            ):
+                accepted = True
+            elif (
+                len(row_components) >= 6
+                and height_ok
+                and span_x >= 28
+                and span_x >= 2.2 * span_y
+            ):
+                accepted = True
+        if accepted:
+            rows += 1
+            organized_pixels += sum(int(item["n"]) for item in row_components)
+            organized_components += len(row_components)
+            max_row = max(max_row, len(row_components))
+    return (
+        organized_pixels / frame_area,
+        organized_components,
+        rows,
+        max_row,
+    )

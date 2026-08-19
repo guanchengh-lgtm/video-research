@@ -118,5 +118,25 @@
   "gex_dark_chart_with_webcam_pip.jpg": {
     "expected": "keep",
     "label": "gex_dark_chart_ordinary_webcam_pip"
+  },
+  "foliage_only.jpg": {
+    "expected": "reject",
+    "label": "foliage_organic_no_data"
+  },
+  "foliage_dense.jpg": {
+    "expected": "reject",
+    "label": "dense_foliage_no_data"
+  },
+  "city_night_windows.jpg": {
+    "expected": "reject",
+    "label": "lit_city_windows_no_data"
+  },
+  "thin_candlestick_chart.jpg": {
+    "expected": "keep",
+    "label": "sparse_thin_candlestick_chart"
+  },
+  "dark_candlestick_chart.jpg": {
+    "expected": "keep",
+    "label": "dark_platform_candlestick_chart"
   }
 }

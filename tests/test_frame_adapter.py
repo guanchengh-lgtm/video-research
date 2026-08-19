@@ -134,6 +134,9 @@ def test_edge_dense_non_data_static_is_rejected():
         ("empty_whiteboard.jpg", "no_evidence"),
         ("empty_ceiling_grid.jpg", "no_evidence"),
         ("face_plus_ceiling_grid.jpg", "face_dominant"),
+        ("foliage_only.jpg", "no_evidence"),
+        ("foliage_dense.jpg", "no_evidence"),
+        ("city_night_windows.jpg", "no_evidence"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -168,6 +171,32 @@ def test_gex_dark_chart_with_ordinary_webcam_pip_stays_eligible():
     assert features.eligible
     assert features.rejection_reason is None
     assert features.compact_face_fraction >= 0.01
+
+
+@pytest.mark.parametrize(
+    ("filename", "reason"),
+    (
+        ("foliage_only.jpg", "no_evidence"),
+        ("foliage_dense.jpg", "no_evidence"),
+        ("city_night_windows.jpg", "no_evidence"),
+    ),
+)
+def test_non_data_organic_and_window_scenes_are_rejected(filename, reason):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == reason
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ("thin_candlestick_chart.jpg", "dark_candlestick_chart.jpg"),
+)
+def test_thin_candlestick_charts_stay_eligible(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
 
 
 def test_warm_heatmap_chart_stays_eligible():
@@ -335,6 +364,9 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "empty_whiteboard.jpg",
         "empty_ceiling_grid.jpg",
         "face_plus_ceiling_grid.jpg",
+        "foliage_only.jpg",
+        "foliage_dense.jpg",
+        "city_night_windows.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -346,6 +378,7 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "chart_with_webcam_pip.jpg",
         "gex_dark_chart_with_webcam_pip.jpg",
         "volatility_0058_bright_slide.jpg",
+        "thin_candlestick_chart.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(
