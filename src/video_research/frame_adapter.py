@@ -939,15 +939,43 @@ def _has_evidence_structure(
     # after downscale, without calendar grids, node-box chrome, or connectors.
     # Thresholds are semantic (line-like H strokes, moderate bands) rather than
     # a single fixture envelope.
+    # Node-link / route diagrams produce stroke geometry without text lines:
+    # sparse bands with dense short runs (no plot axes), dual long rules from
+    # boxes/ovals, or extreme horizontal run walls from colored routes.
+    has_node_link_geometry = (
+        not has_real_glyphs
+        and text_mass < 0.02
+        and (
+            (
+                band_count <= 4
+                and short_h_runs >= 70
+                and not has_axis_lines
+            )
+            or (
+                long_h_runs >= 2
+                and long_v_runs >= 2
+                and not has_strong_axes
+                and series_regularity >= 0.55
+            )
+            or (
+                short_h_runs >= 150
+                and band_count <= 6
+                and not has_axis_lines
+            )
+        )
+    )
     has_stroke_slide_geometry = (
         canvas_fraction >= 0.65
         and 0.018 <= structure_edges <= 0.14
-        and 0.015 <= stroke_mass <= 0.09
+        and 0.015 <= stroke_mass <= 0.075
         and short_h_runs >= 28
         and short_h_glyphs >= 22
         and h_glyph_fraction >= 0.62
         and 3 <= band_count <= 14
         and 10 <= series_columns <= 55
+        # Text-line slides keep moderate column activity per band; link/node
+        # scatter (incl. face-over-diagram) spikes columns without axes.
+        and series_columns <= band_count * 6
         and series_regularity >= 0.40
         and color_panel_mass < 0.10
         and not face_primary
@@ -955,6 +983,7 @@ def _has_evidence_structure(
         and not has_color_tile_grid
         and not has_box_diagram_geometry
         and not has_card_board_geometry
+        and not has_node_link_geometry
         # Month grids: many bands, few active columns.
         and not (band_count >= 12 and series_columns <= 20)
         # Node/connector chrome: weak H-glyph text or long box rules.
@@ -1286,7 +1315,7 @@ def _has_evidence_structure(
         and short_h_mass >= short_v_mass * 1.2
     )
     # Ordinary multi-series lines: L-axes + stroke series without dense columns.
-    # Reject barcode/stripe walls (high bar text mass, no glyphs, no strong axes).
+    # Require plot-like axis/series semantics — not route maps or node-link frames.
     has_axis_series_ink = (
         has_axis_lines
         and has_stroke_ink
@@ -1301,10 +1330,22 @@ def _has_evidence_structure(
         and not has_uniform_bar_sheet
         and not has_box_diagram_geometry
         and not has_card_board_geometry
+        and not has_node_link_geometry
         and (
             has_real_glyphs
             or has_strong_axes
-            or text_mass < 0.05
+            or (
+                # H-dominant series on a simple L-frame (ordinary line charts).
+                has_horizontal_series
+                and short_h_mass >= short_v_mass * 1.8
+                and long_h_mass >= 0.008
+                and long_v_mass >= 0.005
+                and long_h_runs <= 5
+                and long_v_runs <= 6
+                and series_regularity <= 0.50
+                and sat_fraction < 0.10
+                and color_panel_mass < 0.08
+            )
         )
     )
     has_series_support = (
@@ -1547,18 +1588,70 @@ def _has_evidence_structure(
             or (sat_fraction >= 0.03 and long_h_runs >= 4)
         )
     )
+    # Multi-segment horizontal stacked bars: axis frame + repeated color bodies
+    # across category rows (glyphs often vanish after downscale).
+    has_stacked_horizontal_color_bars = (
+        canvas_fraction >= 0.45
+        and 0.05 <= structure_edges <= bar_se_hi
+        and has_axis_lines
+        and color_panel_count >= 4
+        and color_panel_mass >= 0.10
+        and band_count >= 5
+        and series_columns >= 12
+        and long_h_runs >= 4
+        and long_v_runs >= 1
+        and long_h_mass >= 0.03
+        and sat_fraction >= 0.08
+        and short_h_mass >= 0.006
+        and stroke_mass <= bar_stroke_cap
+        and not face_primary
+        and not has_color_tile_grid
+        and not has_box_diagram_geometry
+        and not has_card_board_geometry
+        and not has_node_link_geometry
+    )
     has_horizontal_bar_chart = (
         canvas_fraction >= 0.40
         and 0.04 <= structure_edges <= bar_se_hi
         and not face_primary
         and not has_color_tile_grid
         and band_count >= 4
-        and short_h_mass >= 0.010
+        and short_h_mass >= 0.006
         and stroke_mass <= bar_stroke_cap
         and not has_box_diagram_geometry
-        and (has_labeled_horizontal_bars or has_timeline_bar_chart)
+        and (
+            has_labeled_horizontal_bars
+            or has_timeline_bar_chart
+            or has_stacked_horizontal_color_bars
+        )
     )
     has_bar_histogram = has_vertical_bar_histogram or has_horizontal_bar_chart
+    # 2x2 (or similar) small-multiple line panels: repeated local L-axes +
+    # series stroke without single-panel density floors.
+    has_small_multiples_chart = (
+        canvas_fraction >= 0.55
+        and 0.05 <= structure_edges <= 0.16
+        and has_axis_lines
+        and has_stroke_ink
+        and long_h_runs >= 6
+        and long_v_runs >= 3
+        and long_h_mass >= 0.02
+        and long_v_mass >= 0.005
+        and band_count >= 3
+        and 12 <= series_columns <= 40
+        and series_regularity >= 0.35
+        and stroke_mass <= 0.06
+        and color_panel_mass < 0.10
+        and sat_fraction < 0.15
+        and short_h_runs >= 30
+        and short_v_runs >= 15
+        and not face_primary
+        and not has_box_diagram_geometry
+        and not has_card_board_geometry
+        and not has_color_tile_grid
+        and not has_uniform_bar_sheet
+        and not has_node_link_geometry
+    )
     # Labeled multi-band funnel/partition charts (warm fills may look face-like).
     has_labeled_band_chart = (
         canvas_fraction >= 0.35
@@ -1667,6 +1760,7 @@ def _has_evidence_structure(
         or has_series_chart
         or has_axis_mark_chart
         or has_bar_histogram
+        or has_small_multiples_chart
         or has_labeled_band_chart
         or has_radial_or_gauge_chart
         or has_radial_color_chart

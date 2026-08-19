@@ -194,6 +194,11 @@ def test_edge_dense_non_data_static_is_rejected():
         ("connector_mindmap.jpg", "no_evidence"),
         ("light_org_chart.jpg", "no_evidence"),
         ("face_plus_light_calendar.jpg", "face_dominant"),
+        ("network_topology.jpg", "no_evidence"),
+        ("decision_flow_links.jpg", "no_evidence"),
+        ("mindmap_node_links.jpg", "no_evidence"),
+        ("transit_metro_map.jpg", "no_evidence"),
+        ("face_plus_network_topology.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -332,6 +337,9 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "gauge_readout_chart.jpg",
         "kpi_sparkline_cards.jpg",
         "labeled_form_ui.jpg",
+        "stacked_horizontal_bars.jpg",
+        "small_multiples_line_panels.jpg",
+        "ordinary_multi_series_line.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -406,6 +414,9 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "real_font_axis_histogram.jpg",
         "real_font_spreadsheet.jpg",
         "real_font_pnl_table.jpg",
+        "stacked_horizontal_bars.jpg",
+        "small_multiples_line_panels.jpg",
+        "ordinary_multi_series_line.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -780,6 +791,10 @@ def test_real_font_tables_stay_eligible(filename):
         "light_month_calendar.jpg",
         "connector_mindmap.jpg",
         "light_org_chart.jpg",
+        "network_topology.jpg",
+        "decision_flow_links.jpg",
+        "mindmap_node_links.jpg",
+        "transit_metro_map.jpg",
     ),
 )
 def test_stroke_slide_does_not_accept_grid_or_diagram_chrome(filename):
@@ -787,6 +802,107 @@ def test_stroke_slide_does_not_accept_grid_or_diagram_chrome(filename):
 
     assert not features.eligible
     assert features.rejection_reason == "no_evidence"
+
+
+def test_face_plus_network_diagram_is_hard_dropped():
+    features = analyze_frame(
+        CORPUS / "face_plus_network_topology.jpg", FrameSelectionConfig()
+    )
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+    assert features.compact_face_fraction >= 0.01
+
+
+@pytest.mark.parametrize(
+    "distractor_name",
+    (
+        "network_topology.jpg",
+        "decision_flow_links.jpg",
+        "mindmap_node_links.jpg",
+        "transit_metro_map.jpg",
+    ),
+)
+@pytest.mark.parametrize(
+    "evidence_name",
+    (
+        "gex_0028_dark_colorful_chart.jpg",
+        "beige_text_slide.jpg",
+        "chart_with_webcam_pip.jpg",
+        "ordinary_multi_series_line.jpg",
+        "real_font_agenda_slide.jpg",
+    ),
+)
+def test_node_link_and_transit_maps_lose_to_settled_evidence(
+    distractor_name, evidence_name
+):
+    selection = select_frame(
+        PresentationSegment(0, 10_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / distractor_name,
+            ),
+            FrameCandidate(FrameProbe(2_000, "post_cut"), CORPUS / evidence_name),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == evidence_name
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "distractor_name",
+    (
+        "network_topology.jpg",
+        "transit_metro_map.jpg",
+        "mindmap_node_links.jpg",
+    ),
+)
+def test_node_link_stable_pair_loses_to_later_gex(distractor_name):
+    selection = select_frame(
+        PresentationSegment(0, 12_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / distractor_name,
+            ),
+            FrameCandidate(
+                FrameProbe(1_500, "post_cut"),
+                CORPUS / distractor_name,
+            ),
+            FrameCandidate(
+                FrameProbe(8_000, "post_cut"),
+                CORPUS / "gex_0028_dark_colorful_chart.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "gex_0028_dark_colorful_chart.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "stacked_horizontal_bars.jpg",
+        "small_multiples_line_panels.jpg",
+    ),
+)
+def test_stacked_hbar_and_small_multiples_are_selectable_alone(filename):
+    selection = select_frame(
+        PresentationSegment(0, 5_000),
+        (FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / filename),),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == filename
+    assert selection.observation is VisualObservation.OBSERVED
 
 
 @pytest.mark.parametrize(

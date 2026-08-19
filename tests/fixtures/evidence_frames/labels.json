@@ -502,5 +502,33 @@
   "ordinary_real_pie.jpg": {
     "expected": "keep",
     "label": "ordinary_real_font_pie_chart"
+  },
+  "network_topology.jpg": {
+    "expected": "reject",
+    "label": "network_topology_node_link"
+  },
+  "decision_flow_links.jpg": {
+    "expected": "reject",
+    "label": "decision_flow_node_link"
+  },
+  "mindmap_node_links.jpg": {
+    "expected": "reject",
+    "label": "mindmap_node_link_diagram"
+  },
+  "transit_metro_map.jpg": {
+    "expected": "reject",
+    "label": "transit_route_map"
+  },
+  "face_plus_network_topology.jpg": {
+    "expected": "reject",
+    "label": "face_plus_network_diagram"
+  },
+  "stacked_horizontal_bars.jpg": {
+    "expected": "keep",
+    "label": "stacked_horizontal_bar_chart"
+  },
+  "small_multiples_line_panels.jpg": {
+    "expected": "keep",
+    "label": "small_multiples_line_panels"
   }
 }
