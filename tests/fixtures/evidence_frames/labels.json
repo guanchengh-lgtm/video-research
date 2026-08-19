@@ -178,5 +178,25 @@
   "corporate_blue_area_chart.jpg": {
     "expected": "keep",
     "label": "corporate_blue_area_chart_with_furniture"
+  },
+  "launchpad_with_labels.jpg": {
+    "expected": "reject",
+    "label": "launchpad_icon_grid_with_caption_chips"
+  },
+  "titled_sticky_wall.jpg": {
+    "expected": "reject",
+    "label": "titled_sticky_note_wall_no_chart"
+  },
+  "calendar_month_grid.jpg": {
+    "expected": "reject",
+    "label": "empty_month_calendar_grid_no_chart"
+  },
+  "simple_blue_histogram.jpg": {
+    "expected": "keep",
+    "label": "simple_blue_bar_histogram_with_axes"
+  },
+  "finance_volume_histogram.jpg": {
+    "expected": "keep",
+    "label": "finance_mid_sat_volume_histogram"
   }
 }

@@ -681,27 +681,50 @@ def _has_evidence_structure(
     series_columns, series_regularity = _column_series_stats(
         edge_values, width, height, config.strong_edge_threshold
     )
+    long_h_mass, long_h_runs = _long_run_stats(
+        edge_values,
+        width,
+        height,
+        config.strong_edge_threshold,
+        horizontal=True,
+        min_length=28,
+    )
+    long_v_mass, long_v_runs = _long_run_stats(
+        edge_values,
+        width,
+        height,
+        config.strong_edge_threshold,
+        horizontal=False,
+        min_length=22,
+    )
     h_glyph_fraction = (short_h_glyphs / short_h_runs) if short_h_runs else 0.0
     v_glyph_fraction = (short_v_glyphs / short_v_runs) if short_v_runs else 0.0
     stroke_mass = short_h_mass + short_v_mass
     sat_fraction = sum(
         saturation_values[index] >= 90 for index in interior_indexes
     ) / len(interior_indexes)
-    # Chart ink needs organized strokes/labels/panels — not bare highsat edges.
-    has_chart_ink = (
-        (
-            short_h_glyphs >= 18
-            and short_v_glyphs >= 12
-            and h_glyph_fraction >= 0.30
-            and v_glyph_fraction >= 0.30
-            and stroke_mass <= 0.12
-        )
-        or text_mass >= 0.008
-        or color_panel_mass >= 0.10
-    )
-    # Bars (multi-line or high mass) or elongated multi-glyph baselines.
+    # Bars / multi-line baselines — not a lone title chip or day-number mass.
     has_text_organization = text_rows >= 1 and (
-        max_text_row >= 4 or text_mass >= 0.045 or text_rows >= 3
+        max_text_row >= 4
+        or text_rows >= 3
+        or (text_mass >= 0.045 and text_components >= 3 and max_text_row >= 2)
+    )
+    # Stroke/label ink only. Bare color tiles are not bidir/color-chart ink.
+    has_stroke_ink = (
+        short_h_glyphs >= 18
+        and short_v_glyphs >= 12
+        and h_glyph_fraction >= 0.30
+        and v_glyph_fraction >= 0.30
+        and stroke_mass <= 0.12
+    )
+    has_label_ink = text_mass >= 0.008 and has_text_organization
+    has_panel_ink = color_panel_mass >= 0.10
+    has_chart_ink = has_stroke_ink or has_label_ink or has_panel_ink
+    # Small equal color tiles (launchpad/sticky/icon grids) are not slides.
+    has_color_tile_grid = (
+        color_panel_count >= 6
+        and color_panel_bbox <= 0.12
+        and color_panel_mass >= 0.10
     )
 
     has_slide_text = (
@@ -710,6 +733,7 @@ def _has_evidence_structure(
         and has_text_organization
         and canvas_fraction >= 0.40
         and 0.05 <= structure_edges <= 0.25
+        and not has_color_tile_grid
     )
     has_organized_text = (
         text_mass >= 0.008
@@ -720,6 +744,7 @@ def _has_evidence_structure(
         and short_h_runs >= 35
         and short_v_runs >= 30
         and not face_primary
+        and not has_color_tile_grid
     )
     has_content_slide = (
         text_mass >= 0.012
@@ -730,7 +755,9 @@ def _has_evidence_structure(
         and short_h_runs >= 80
         and short_v_runs >= 80
         and band_count >= 8
+        and not has_color_tile_grid
     )
+    # Bidir needs stroke or organized label ink — not bare color-tile mass.
     has_bidir_chart = (
         canvas_fraction >= 0.28
         and 0.06 <= structure_edges <= 0.22
@@ -740,8 +767,31 @@ def _has_evidence_structure(
         and short_h_mass >= 0.018
         and short_v_mass >= 0.005
         and not face_primary
-        and has_chart_ink
+        and (has_stroke_ink or has_label_ink)
     )
+    # Semantic furniture: organized labels or true long axis lines.
+    has_label_furniture = has_label_ink or (
+        text_mass >= 0.008 and text_components >= 3 and max_text_row >= 2
+    )
+    has_axis_lines = (
+        long_h_mass >= 0.006
+        and long_v_mass >= 0.003
+        and long_h_runs >= 1
+        and long_v_runs >= 1
+    ) or (
+        long_h_runs >= 2
+        and long_v_runs >= 2
+        and long_h_mass >= 0.004
+    )
+    has_axis_furniture = (
+        has_axis_lines
+        and short_h_mass >= 0.010
+        and short_v_mass >= 0.005
+        and band_count >= 4
+        and series_columns >= 8
+        and stroke_mass <= 0.12
+    )
+    has_chart_furniture = has_label_furniture or has_axis_furniture
     has_color_chart = (
         highsat_strong >= 0.03
         and canvas_fraction >= 0.25
@@ -751,32 +801,19 @@ def _has_evidence_structure(
         and band_count >= 4
         and not face_primary
         and has_chart_ink
+        and has_chart_furniture
         and (
             not has_face
             or color_panel_mass >= 0.08
-            or text_mass >= 0.008
+            or has_label_ink
             or color_panel_count >= 3
         )
     )
-    # Chart furniture: labels/axes/series organization — not bare tile grids.
-    has_label_furniture = text_mass >= 0.006 and (
-        text_components >= 2 or has_text_organization or max_text_row >= 2
-    )
-    has_axis_furniture = (
-        short_h_mass >= 0.015
-        and short_v_mass >= 0.008
-        and band_count >= 5
-        and series_columns >= 12
-        and series_regularity >= 0.40
-        and stroke_mass <= 0.10
-    )
-    has_chart_furniture = has_label_furniture or has_axis_furniture
-    # High-sat fills (heatmap) keep via strong color edges alone. Soft/mid
-    # single-fill area charts need title/axes/label furniture. Multi-block
-    # panels require the same furniture so app-icon/sticky/light boards drop.
+    # High-sat fills need a substantial contiguous panel, not icon tiles.
     has_highsat_fill = (
         color_panel_mass >= 0.12
-        and color_panel_bbox <= 0.60
+        and 0.08 <= color_panel_bbox <= 0.60
+        and color_panel_count <= 4
         and highsat_strong >= 0.08
     )
     has_soft_area = (
@@ -786,12 +823,14 @@ def _has_evidence_structure(
         and has_chart_furniture
         and not face_primary
     )
+    # Multi-block panels need labels plus real axes — not tile edges/title chips.
     has_multi_panel = (
         color_panel_count >= 4
         and color_panel_mass >= 0.08
         and color_panel_bbox <= 0.40
         and highsat_strong >= 0.015
-        and has_chart_furniture
+        and has_label_furniture
+        and has_axis_furniture
         and not face_primary
     )
     has_color_panel = (
@@ -847,6 +886,25 @@ def _has_evidence_structure(
             or has_horizontal_series
         )
     )
+    # Single-series bar/histogram: regular columns + axes/title, no V-dominance.
+    has_bar_bodies = (
+        color_panel_mass >= 0.015
+        or color_panel_count >= 3
+        or (0.02 <= sat_fraction <= 0.30 and short_v_mass >= 0.010)
+    )
+    has_bar_histogram = (
+        canvas_fraction >= 0.40
+        and 0.04 <= structure_edges <= 0.20
+        and not face_primary
+        and series_columns >= 8
+        and series_regularity >= 0.35
+        and short_v_runs >= 12
+        and short_v_mass >= 0.008
+        and band_count >= 3
+        and stroke_mass <= 0.10
+        and has_bar_bodies
+        and (has_chart_furniture or has_axis_lines)
+    )
     return (
         has_slide_text
         or has_organized_text
@@ -855,7 +913,54 @@ def _has_evidence_structure(
         or has_color_chart
         or has_color_panel
         or has_series_chart
+        or has_bar_histogram
     )
+
+
+def _long_run_stats(
+    edge_values: list[int],
+    width: int,
+    height: int,
+    threshold: int,
+    *,
+    horizontal: bool,
+    min_length: int,
+) -> tuple[float, int]:
+    """Mass and count of long interior edge runs (axis/spine lines)."""
+
+    total = 0
+    runs = 0
+    frame_area = width * height
+    if horizontal:
+        for y in range(2, height - 2):
+            run = 0
+            row = y * width
+            for x in range(2, width - 2):
+                if edge_values[row + x] > threshold:
+                    run += 1
+                else:
+                    if run >= min_length:
+                        total += run
+                        runs += 1
+                    run = 0
+            if run >= min_length:
+                total += run
+                runs += 1
+    else:
+        for x in range(2, width - 2):
+            run = 0
+            for y in range(2, height - 2):
+                if edge_values[y * width + x] > threshold:
+                    run += 1
+                else:
+                    if run >= min_length:
+                        total += run
+                        runs += 1
+                    run = 0
+            if run >= min_length:
+                total += run
+                runs += 1
+    return total / frame_area, runs
 
 
 def _short_run_stats(

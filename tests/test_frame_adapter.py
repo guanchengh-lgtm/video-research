@@ -140,6 +140,9 @@ def test_edge_dense_non_data_static_is_rejected():
         ("app_icon_grid.jpg", "no_evidence"),
         ("sticky_note_wall.jpg", "face_dominant"),
         ("traffic_light_board.jpg", "no_evidence"),
+        ("launchpad_with_labels.jpg", "no_evidence"),
+        ("titled_sticky_wall.jpg", "no_evidence"),
+        ("calendar_month_grid.jpg", "no_evidence"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -210,6 +213,8 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "stacked_bar_chart.jpg",
         "soft_orange_area_chart.jpg",
         "corporate_blue_area_chart.jpg",
+        "simple_blue_histogram.jpg",
+        "finance_volume_histogram.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -225,6 +230,9 @@ def test_ordinary_axis_aligned_charts_stay_eligible(filename):
         "app_icon_grid.jpg",
         "sticky_note_wall.jpg",
         "traffic_light_board.jpg",
+        "launchpad_with_labels.jpg",
+        "titled_sticky_wall.jpg",
+        "calendar_month_grid.jpg",
     ),
 )
 def test_multicolor_tile_boards_without_chart_furniture_are_rejected(filename):
@@ -256,6 +264,8 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "light_theme_text_slide.jpg",
         "soft_orange_area_chart.jpg",
         "corporate_blue_area_chart.jpg",
+        "simple_blue_histogram.jpg",
+        "finance_volume_histogram.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -443,6 +453,8 @@ def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
         "light_theme_text_slide.jpg",
         "soft_orange_area_chart.jpg",
         "corporate_blue_area_chart.jpg",
+        "simple_blue_histogram.jpg",
+        "finance_volume_histogram.jpg",
     ),
 )
 def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
@@ -483,6 +495,9 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "app_icon_grid.jpg",
         "sticky_note_wall.jpg",
         "traffic_light_board.jpg",
+        "launchpad_with_labels.jpg",
+        "titled_sticky_wall.jpg",
+        "calendar_month_grid.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -501,6 +516,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "dark_theme_text_slide.jpg",
         "soft_orange_area_chart.jpg",
         "corporate_blue_area_chart.jpg",
+        "simple_blue_histogram.jpg",
+        "finance_volume_histogram.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(
