@@ -559,6 +559,12 @@ def _face_like_regions(
         )
         if not textured:
             continue
+        bbox_w = max_x - min_x + 1
+        bbox_h = max_y - min_y + 1
+        aspect = bbox_w / max(bbox_h, 1)
+        # Wide/tall chart bands and area strips are not face-like.
+        if aspect >= 2.4 or aspect <= 0.35:
+            continue
         regions.append(
             _FaceRegion(
                 indexes=tuple(component),
@@ -825,18 +831,52 @@ def _has_evidence_structure(
     )
     # Tabular grid + header/body glyph rows (dense numeric tables).
     has_data_table = (
-        text_mass >= 0.04
-        and text_components >= 12
+        text_mass >= 0.035
+        and text_components >= 8
         and text_rows >= 4
-        and max_text_row >= 3
-        and canvas_fraction >= 0.30
-        and 0.08 <= structure_edges <= 0.35
-        and band_count >= 5
-        and (long_h_runs >= 2 or long_v_runs >= 2)
+        and max_text_row >= 2
+        and canvas_fraction >= 0.28
+        and 0.08 <= structure_edges <= 0.40
+        and band_count >= 4
+        and (long_h_runs >= 2 or long_v_runs >= 2 or series_columns >= 20)
+        and stroke_mass <= 0.22
         and not face_primary
         and not has_color_tile_grid
     )
-    # Bidir needs stroke/label ink plus real data furniture — not map outlines.
+    # Spreadsheet/grid UI with header/cell lattice (glyphs may merge when downscaled).
+    has_spreadsheet_grid = (
+        canvas_fraction >= 0.35
+        and 0.10 <= structure_edges <= 0.36
+        and text_mass >= 0.04
+        and text_rows >= 4
+        and text_components >= 8
+        and max_text_row >= 2
+        and band_count >= 6
+        and series_columns >= 20
+        and series_regularity >= 0.60
+        and long_h_runs >= 4
+        and long_v_runs >= 1
+        and short_v_runs >= 40
+        and short_h_runs >= 12
+        and stroke_mass <= 0.18
+        and not face_primary
+        and not has_color_tile_grid
+    )
+    # Bidir/color need labels/platform/dense furniture or high-column axis marks —
+    # not bare long H/V grids / crossword lattices with low series column counts.
+    has_bidir_semantic_furniture = (
+        has_label_furniture
+        or has_label_ink
+        or has_platform_furniture
+        or has_dense_stroke_furniture
+        or (
+            has_axis_furniture
+            and has_stroke_ink
+            and stroke_mass <= 0.10
+            and series_columns >= 40
+            and series_regularity >= 0.55
+        )
+    )
     has_bidir_chart = (
         canvas_fraction >= 0.28
         and 0.06 <= structure_edges <= 0.22
@@ -847,7 +887,7 @@ def _has_evidence_structure(
         and short_v_mass >= 0.005
         and not face_primary
         and (has_stroke_ink or has_label_ink)
-        and has_data_furniture
+        and has_bidir_semantic_furniture
     )
     has_color_chart = (
         highsat_strong >= 0.03
@@ -858,7 +898,7 @@ def _has_evidence_structure(
         and band_count >= 4
         and not face_primary
         and has_chart_ink
-        and has_data_furniture
+        and has_bidir_semantic_furniture
         and (
             not has_face
             or color_panel_mass >= 0.08
@@ -900,7 +940,15 @@ def _has_evidence_structure(
         and 0.08 <= color_panel_bbox <= 0.45
         and not face_primary
         and not has_color_tile_grid
-        and (has_label_furniture or has_axis_lines or text_mass >= 0.012)
+        and (
+            has_label_furniture
+            or text_mass >= 0.012
+            or (
+                color_panel_mass >= 0.28
+                and color_panel_count >= 5
+                and band_count >= 4
+            )
+        )
     )
     has_color_panel = (
         canvas_fraction >= 0.25
@@ -961,22 +1009,27 @@ def _has_evidence_structure(
             or has_horizontal_series
         )
     )
-    # Box/whisker, scatter, and sparse axis-mark charts: strong axes + mark ink.
+    # Box/whisker and sparse axis-mark charts: strong axes + mark/series ink that
+    # dominates panel rules — not bare comic panels or architectural L-frames.
+    long_axis_mass = long_h_mass + long_v_mass
     has_axis_mark_chart = (
         canvas_fraction >= 0.45
         and 0.05 <= structure_edges <= 0.22
         and has_strong_axes
         and not face_primary
-        and series_columns >= 12
-        and series_regularity >= 0.40
-        and short_v_runs >= 30
-        and short_h_runs >= 20
-        and stroke_mass <= 0.15
+        and series_columns >= 24
+        and series_regularity >= 0.45
+        and short_v_runs >= 50
+        and short_h_runs >= 40
+        and short_h_glyphs >= 40
+        and short_v_glyphs >= 50
+        and 0.04 <= stroke_mass <= 0.15
+        and stroke_mass >= long_axis_mass * 0.85
         and band_count >= 3
         and (
-            has_stroke_ink
-            or (short_h_glyphs >= 12 and short_v_glyphs >= 20)
-            or (short_v_mass >= 0.015 and short_h_mass >= 0.008)
+            has_label_furniture
+            or has_stroke_ink
+            or (short_h_glyphs >= 60 and short_v_glyphs >= 80)
         )
     )
     # Single-series bar/histogram: regular columns + axes/title, no V-dominance.
@@ -998,17 +1051,31 @@ def _has_evidence_structure(
         and has_bar_bodies
         and has_data_furniture
     )
+    # Labeled multi-band funnel/partition charts (warm fills may look face-like).
+    has_labeled_band_chart = (
+        canvas_fraction >= 0.35
+        and 0.05 <= structure_edges <= 0.22
+        and color_panel_count >= 4
+        and color_panel_mass >= 0.20
+        and 0.06 <= color_panel_bbox <= 0.35
+        and has_label_furniture
+        and text_rows >= 2
+        and band_count >= 6
+        and not has_color_tile_grid
+    )
     return (
         has_slide_text
         or has_organized_text
         or has_content_slide
         or has_data_table
+        or has_spreadsheet_grid
         or has_bidir_chart
         or has_color_chart
         or has_color_panel
         or has_series_chart
         or has_axis_mark_chart
         or has_bar_histogram
+        or has_labeled_band_chart
     )
 
 

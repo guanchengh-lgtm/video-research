@@ -151,6 +151,10 @@ def test_edge_dense_non_data_static_is_rejected():
         ("simple_map_outline.jpg", "no_evidence"),
         ("qr_module_grid.jpg", "no_evidence"),
         ("code_editor_stack.jpg", "no_evidence"),
+        ("comic_panel_storyboard.jpg", "no_evidence"),
+        ("blueprint_grid.jpg", "no_evidence"),
+        ("crossword_grid.jpg", "no_evidence"),
+        ("face_plus_comic_panels.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -251,6 +255,8 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "labeled_treemap.jpg",
         "sparse_scatter_chart.jpg",
         "dense_numeric_table.jpg",
+        "spreadsheet_grid.jpg",
+        "funnel_chart.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -306,6 +312,8 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "labeled_treemap.jpg",
         "sparse_scatter_chart.jpg",
         "dense_numeric_table.jpg",
+        "spreadsheet_grid.jpg",
+        "funnel_chart.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -499,6 +507,8 @@ def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
         "labeled_treemap.jpg",
         "sparse_scatter_chart.jpg",
         "dense_numeric_table.jpg",
+        "spreadsheet_grid.jpg",
+        "funnel_chart.jpg",
     ),
 )
 def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
@@ -550,6 +560,10 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "simple_map_outline.jpg",
         "qr_module_grid.jpg",
         "code_editor_stack.jpg",
+        "comic_panel_storyboard.jpg",
+        "blueprint_grid.jpg",
+        "crossword_grid.jpg",
+        "face_plus_comic_panels.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -574,6 +588,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "labeled_treemap.jpg",
         "sparse_scatter_chart.jpg",
         "dense_numeric_table.jpg",
+        "spreadsheet_grid.jpg",
+        "funnel_chart.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(

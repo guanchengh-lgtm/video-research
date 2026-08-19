@@ -246,5 +246,29 @@
   "dense_numeric_table.jpg": {
     "expected": "keep",
     "label": "dense_numeric_table_with_header"
+  },
+  "comic_panel_storyboard.jpg": {
+    "expected": "reject",
+    "label": "comic_panel_storyboard_no_data"
+  },
+  "blueprint_grid.jpg": {
+    "expected": "reject",
+    "label": "architectural_blueprint_grid_no_data"
+  },
+  "crossword_grid.jpg": {
+    "expected": "reject",
+    "label": "crossword_grid_no_data"
+  },
+  "face_plus_comic_panels.jpg": {
+    "expected": "reject",
+    "label": "face_plus_comic_panel_talking_head"
+  },
+  "spreadsheet_grid.jpg": {
+    "expected": "keep",
+    "label": "spreadsheet_grid_with_header_cells"
+  },
+  "funnel_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_multi_band_funnel_chart"
   }
 }
