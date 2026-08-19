@@ -199,6 +199,11 @@ def test_edge_dense_non_data_static_is_rejected():
         ("mindmap_node_links.jpg", "no_evidence"),
         ("transit_metro_map.jpg", "no_evidence"),
         ("face_plus_network_topology.jpg", "face_dominant"),
+        ("sticky_process_board.jpg", "face_dominant"),
+        ("blue_sticky_process_board.jpg", "no_evidence"),
+        ("face_plus_blue_sticky_process.jpg", "face_dominant"),
+        ("white_card_process_board.jpg", "no_evidence"),
+        ("face_plus_white_card_process.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -340,6 +345,10 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "stacked_horizontal_bars.jpg",
         "small_multiples_line_panels.jpg",
         "ordinary_multi_series_line.jpg",
+        "sankey_flow_chart.jpg",
+        "ordinary_donut_legend.jpg",
+        "stacked_area_multiband.jpg",
+        "dark_kpi_sparkline_cards.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -568,6 +577,116 @@ def test_waterfall_and_gantt_charts_are_selectable_alone(filename):
 
     assert selection.selected is not None
     assert selection.selected.path.name == filename
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "sankey_flow_chart.jpg",
+        "ordinary_donut_legend.jpg",
+        "stacked_area_multiband.jpg",
+        "dark_kpi_sparkline_cards.jpg",
+    ),
+)
+def test_sankey_donut_area_and_dark_kpi_are_selectable_alone(filename):
+    selection = select_frame(
+        PresentationSegment(0, 5_000),
+        (FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / filename),),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == filename
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "sticky_process_board.jpg",
+        "blue_sticky_process_board.jpg",
+        "white_card_process_board.jpg",
+        "face_plus_blue_sticky_process.jpg",
+        "face_plus_white_card_process.jpg",
+    ),
+)
+def test_process_card_boards_are_not_timeline_evidence(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason in {"no_evidence", "face_dominant"}
+
+
+@pytest.mark.parametrize(
+    "distractor_name",
+    (
+        "blue_sticky_process_board.jpg",
+        "face_plus_blue_sticky_process.jpg",
+        "white_card_process_board.jpg",
+        "face_plus_white_card_process.jpg",
+        "sticky_process_board.jpg",
+    ),
+)
+@pytest.mark.parametrize(
+    "evidence_name",
+    (
+        "gex_0028_dark_colorful_chart.jpg",
+        "beige_text_slide.jpg",
+        "chart_with_webcam_pip.jpg",
+        "waterfall_bridge_chart.jpg",
+        "ordinary_multi_series_line.jpg",
+        "real_font_agenda_slide.jpg",
+    ),
+)
+def test_process_card_boards_lose_to_settled_evidence(distractor_name, evidence_name):
+    selection = select_frame(
+        PresentationSegment(0, 10_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / distractor_name,
+            ),
+            FrameCandidate(FrameProbe(2_000, "post_cut"), CORPUS / evidence_name),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == evidence_name
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "distractor_name",
+    (
+        "blue_sticky_process_board.jpg",
+        "face_plus_blue_sticky_process.jpg",
+        "face_plus_white_card_process.jpg",
+    ),
+)
+def test_process_card_stable_pair_loses_to_later_gex(distractor_name):
+    selection = select_frame(
+        PresentationSegment(0, 12_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / distractor_name,
+            ),
+            FrameCandidate(
+                FrameProbe(1_500, "post_cut"),
+                CORPUS / distractor_name,
+            ),
+            FrameCandidate(
+                FrameProbe(8_000, "post_cut"),
+                CORPUS / "gex_0028_dark_colorful_chart.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "gex_0028_dark_colorful_chart.jpg"
     assert selection.observation is VisualObservation.OBSERVED
 
 
@@ -1237,6 +1356,11 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "face_plus_er_diagram.jpg",
         "unlabeled_colorbar_schedule_board.jpg",
         "face_plus_colorbar_schedule_board.jpg",
+        "sticky_process_board.jpg",
+        "blue_sticky_process_board.jpg",
+        "face_plus_blue_sticky_process.jpg",
+        "white_card_process_board.jpg",
+        "face_plus_white_card_process.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -1277,6 +1401,10 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "real_font_agenda_slide.jpg",
         "real_font_axis_histogram.jpg",
         "real_font_spreadsheet.jpg",
+        "sankey_flow_chart.jpg",
+        "ordinary_donut_legend.jpg",
+        "stacked_area_multiband.jpg",
+        "dark_kpi_sparkline_cards.jpg",
         "real_font_pnl_table.jpg",
     ),
 )

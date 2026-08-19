@@ -918,6 +918,26 @@ def _has_evidence_structure(
             or has_card_board_geometry
         )
     )
+    # Process/sticky card boards: discrete large color panels + box rules with
+    # sparse series density. Stroke/color based so compact face masks cannot
+    # unlock timeline/bar paths by erasing text-dependent box vetoes.
+    has_process_card_geometry = (
+        color_panel_count >= 3
+        and color_panel_mass >= 0.12
+        and 0.04 <= color_panel_bbox <= 0.16
+        and long_h_runs >= 4
+        and long_v_runs >= 6
+        and long_v_mass >= long_h_mass * 0.70
+        and series_columns <= 28
+        and series_regularity <= 0.55
+        and not has_real_glyphs
+        and text_mass < 0.03
+    )
+    has_nondata_card_geometry = (
+        has_box_diagram_geometry
+        or has_card_board_geometry
+        or has_process_card_geometry
+    )
 
     # Glyph/label slides — multi-glyph or varied bar lines, not stripe sheets
     # or connector-heavy flow diagrams.
@@ -945,6 +965,16 @@ def _has_evidence_structure(
     has_node_link_geometry = (
         not has_real_glyphs
         and text_mass < 0.02
+        and color_panel_mass < 0.12
+        # Regular multi-card KPI chrome is not a node-link diagram.
+        and not (
+            series_columns >= 28
+            and series_regularity >= 0.55
+            and long_h_runs >= 3
+            and long_v_runs >= 3
+            and band_count >= 4
+            and stroke_mass <= 0.06
+        )
         and (
             (
                 band_count <= 4
@@ -956,6 +986,7 @@ def _has_evidence_structure(
                 and long_v_runs >= 2
                 and not has_strong_axes
                 and series_regularity >= 0.55
+                and series_columns <= 36
             )
             or (
                 short_h_runs >= 150
@@ -1172,7 +1203,7 @@ def _has_evidence_structure(
         and short_v_mass >= 0.005
         and not face_primary
         and not has_color_tile_grid
-        and not has_box_diagram_geometry
+        and not has_nondata_card_geometry
         and (has_stroke_ink or has_label_ink)
         and has_bidir_semantic_furniture
     )
@@ -1185,7 +1216,7 @@ def _has_evidence_structure(
         and band_count >= 4
         and not face_primary
         and not has_color_tile_grid
-        and not has_box_diagram_geometry
+        and not has_nondata_card_geometry
         and has_chart_ink
         and has_bidir_semantic_furniture
         and (
@@ -1206,6 +1237,7 @@ def _has_evidence_structure(
     has_soft_area = (
         color_panel_mass >= 0.12
         and not face_primary
+        and not has_process_card_geometry
         and (
             (
                 color_panel_bbox <= 0.65
@@ -1214,8 +1246,9 @@ def _has_evidence_structure(
             )
             or (
                 # Full-plot multi-band stacked area: horizontal bands + axes.
+                # Bands may merge into one component after downscale.
                 color_panel_mass >= 0.20
-                and 2 <= color_panel_count <= 8
+                and color_panel_count <= 8
                 and color_panel_bbox <= 0.85
                 and has_axis_lines
                 and band_count >= 4
@@ -1390,7 +1423,7 @@ def _has_evidence_structure(
         and has_series_band_support
         and not face_primary
         and not has_color_tile_grid
-        and not has_box_diagram_geometry
+        and not has_nondata_card_geometry
         and not has_uniform_bar_sheet
         and series_columns >= 10
         and has_series_regularity_support
@@ -1509,6 +1542,16 @@ def _has_evidence_structure(
         and long_v_runs >= 2
         and long_h_mass >= 0.005
         and not has_card_board_geometry
+        and not has_process_card_geometry
+        # Large discrete cards are not thin bar columns.
+        and not (
+            color_panel_mass >= 0.18
+            and color_panel_bbox >= 0.05
+            and color_panel_count <= 8
+            and series_columns < 28
+            and long_v_runs >= 6
+            and long_h_runs >= 4
+        )
     )
     has_vertical_bar_histogram = (
         canvas_fraction >= 0.40
@@ -1522,7 +1565,7 @@ def _has_evidence_structure(
         and band_count >= 3
         and stroke_mass <= bar_stroke_cap
         and has_bar_bodies
-        and not has_box_diagram_geometry
+        and not has_nondata_card_geometry
         and (
             has_label_furniture
             or has_multiband_bar_partition
@@ -1540,6 +1583,8 @@ def _has_evidence_structure(
                     or (
                         color_panel_mass >= 0.05
                         and color_panel_count >= 3
+                        and color_panel_bbox <= 0.05
+                        and series_columns >= 18
                         and (
                             has_strong_axes
                             or has_label_furniture
@@ -1570,7 +1615,8 @@ def _has_evidence_structure(
         )
     )
     # Gantt/timeline: axis frame + repeated horizontal bar bodies even when
-    # category glyphs disappear after downscale.
+    # category glyphs disappear after downscale. Process/sticky cards with
+    # box borders are not timeline bars.
     has_timeline_bar_chart = (
         (has_axis_lines or has_axis_furniture or has_strong_axes)
         and long_h_mass >= 0.010
@@ -1582,6 +1628,16 @@ def _has_evidence_structure(
         and band_count >= 4
         and 0.02 <= sat_fraction <= 0.45
         and short_h_mass >= short_v_mass * 0.55
+        and not has_process_card_geometry
+        and not (
+            # Discrete card walls: many long V rules, sparse series, fat panels.
+            long_v_runs >= 6
+            and color_panel_count >= 3
+            and color_panel_mass >= 0.12
+            and color_panel_bbox >= 0.04
+            and series_columns < 35
+            and not has_real_glyphs
+        )
         and (
             color_panel_count >= 3
             or color_panel_mass >= 0.03
@@ -1606,8 +1662,7 @@ def _has_evidence_structure(
         and stroke_mass <= bar_stroke_cap
         and not face_primary
         and not has_color_tile_grid
-        and not has_box_diagram_geometry
-        and not has_card_board_geometry
+        and not has_nondata_card_geometry
         and not has_node_link_geometry
     )
     has_horizontal_bar_chart = (
@@ -1618,7 +1673,7 @@ def _has_evidence_structure(
         and band_count >= 4
         and short_h_mass >= 0.006
         and stroke_mass <= bar_stroke_cap
-        and not has_box_diagram_geometry
+        and not has_nondata_card_geometry
         and (
             has_labeled_horizontal_bars
             or has_timeline_bar_chart
@@ -1691,45 +1746,112 @@ def _has_evidence_structure(
         and not has_box_diagram_geometry
     )
     # Real-font pie/donut: balanced H/V stroke around a compact color disk.
-    # Legend/title glyphs often vanish at analysis size.
+    # Legend chips may split the panel count; title glyphs often vanish.
     _radial_run_max = max(short_h_runs, short_v_runs, 1)
     has_radial_color_chart = (
         canvas_fraction >= 0.50
-        and 0.03 <= structure_edges <= 0.14
-        and color_panel_mass >= 0.14
-        and color_panel_count <= 4
-        and 0.15 <= color_panel_bbox <= 0.55
+        and 0.03 <= structure_edges <= 0.16
+        and color_panel_mass >= 0.10
+        and (
+            color_panel_count <= 4
+            or (color_panel_count <= 8 and color_panel_bbox >= 0.16)
+        )
+        and 0.12 <= color_panel_bbox <= 0.60
         and has_stroke_ink
-        and stroke_mass <= 0.10
-        and short_h_runs >= 45
-        and short_v_runs >= 45
-        and abs(short_h_runs - short_v_runs) / _radial_run_max <= 0.35
-        and h_glyph_fraction >= 0.55
-        and v_glyph_fraction >= 0.55
-        and sat_fraction >= 0.10
-        and band_count >= 4
-        and series_columns >= 24
+        and stroke_mass <= 0.12
+        and short_h_runs >= 40
+        and short_v_runs >= 40
+        and abs(short_h_runs - short_v_runs) / _radial_run_max <= 0.40
+        and h_glyph_fraction >= 0.50
+        and v_glyph_fraction >= 0.50
+        and sat_fraction >= 0.08
+        and band_count >= 3
+        and series_columns >= 18
         and not face_primary
         and not has_color_tile_grid
-        and not has_box_diagram_geometry
+        and not has_nondata_card_geometry
         and not (long_h_runs >= 3 and long_v_runs >= 3)
         and not (long_h_mass >= 0.03 and long_v_mass >= 0.01)
+    )
+    # Labeled Sankey/flow partitions: multi-node color bodies + link strokes.
+    # Downscale may merge nodes/ribbons into one wide color component.
+    has_sankey_flow_chart = (
+        canvas_fraction >= 0.40
+        and 0.04 <= structure_edges <= 0.18
+        and color_panel_mass >= 0.16
+        and sat_fraction >= 0.10
+        and has_stroke_ink
+        and short_h_mass >= 0.015
+        and short_h_mass >= short_v_mass * 1.15
+        and short_h_runs >= 40
+        and band_count >= 3
+        and series_columns >= 12
+        and stroke_mass <= 0.14
+        and not face_primary
+        and not has_color_tile_grid
+        and not has_process_card_geometry
+        and not has_node_link_geometry
+        and not has_box_diagram_geometry
+        and (
+            (
+                color_panel_count >= 2
+                and 0.08 <= color_panel_bbox <= 0.55
+            )
+            or (
+                # Merged flow body: wide horizontal color mass + link strokes.
+                color_panel_count <= 2
+                and color_panel_bbox >= 0.30
+                and short_h_mass >= short_v_mass * 1.8
+                and short_h_runs >= 60
+                and long_v_runs <= 4
+            )
+        )
+        and (
+            has_label_furniture
+            or has_real_glyphs
+            or text_mass >= 0.004
+            or (
+                short_h_glyphs >= 28
+                and h_glyph_fraction >= 0.50
+                and short_h_mass >= short_v_mass * 1.5
+            )
+        )
     )
     # Multi-card KPI / sparkline strips with titles and values.
     has_kpi_card_strip = (
         canvas_fraction >= 0.45
-        and 0.06 <= structure_edges <= 0.30
-        and has_ui_labels
-        and has_real_label_marks
-        and text_components >= 4
-        and max_text_row >= 4
-        and long_h_runs >= 6
-        and long_v_runs >= 4
+        and 0.04 <= structure_edges <= 0.30
+        and long_h_runs >= 3
+        and long_v_runs >= 3
         and series_columns >= 20
         and stroke_mass <= 0.18
         and not face_primary
         and not has_color_tile_grid
+        and not has_process_card_geometry
         and not has_box_diagram_geometry
+        and color_panel_mass < 0.12
+        and (
+            (
+                has_ui_labels
+                and has_real_label_marks
+                and text_components >= 4
+                and max_text_row >= 4
+                and long_h_runs >= 6
+                and long_v_runs >= 4
+            )
+            or (
+                # Dark/real-font cards: chrome + sparkline strokes without thick
+                # glyph mass after downscale.
+                dark_theme
+                and has_stroke_ink
+                and short_h_runs >= 28
+                and short_v_runs >= 28
+                and series_regularity >= 0.45
+                and band_count >= 3
+                and sat_fraction >= 0.02
+                and stroke_mass <= 0.08
+            )
+        )
     )
     # Labeled form/settings UI: field labels + value rows + input chrome.
     has_labeled_form_ui = (
@@ -1764,6 +1886,7 @@ def _has_evidence_structure(
         or has_labeled_band_chart
         or has_radial_or_gauge_chart
         or has_radial_color_chart
+        or has_sankey_flow_chart
         or has_kpi_card_strip
         or has_labeled_form_ui
     )

@@ -530,5 +530,41 @@
   "small_multiples_line_panels.jpg": {
     "expected": "keep",
     "label": "small_multiples_line_panels"
+  },
+  "sticky_process_board.jpg": {
+    "expected": "reject",
+    "label": "sticky_process_board_no_chart"
+  },
+  "blue_sticky_process_board.jpg": {
+    "expected": "reject",
+    "label": "blue_sticky_process_board_no_chart"
+  },
+  "face_plus_blue_sticky_process.jpg": {
+    "expected": "reject",
+    "label": "face_plus_blue_sticky_process_talking_head"
+  },
+  "white_card_process_board.jpg": {
+    "expected": "reject",
+    "label": "white_card_process_board_no_chart"
+  },
+  "face_plus_white_card_process.jpg": {
+    "expected": "reject",
+    "label": "face_plus_white_card_process_talking_head"
+  },
+  "sankey_flow_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_sankey_flow_chart"
+  },
+  "ordinary_donut_legend.jpg": {
+    "expected": "keep",
+    "label": "ordinary_donut_with_legend"
+  },
+  "stacked_area_multiband.jpg": {
+    "expected": "keep",
+    "label": "axis_bearing_multiband_stacked_area"
+  },
+  "dark_kpi_sparkline_cards.jpg": {
+    "expected": "keep",
+    "label": "dark_kpi_sparkline_cards"
   }
 }
