@@ -286,5 +286,29 @@
   "stacked_area_full_plot.jpg": {
     "expected": "keep",
     "label": "full_plot_multiband_stacked_area"
+  },
+  "stripe_color_bands.jpg": {
+    "expected": "reject",
+    "label": "horizontal_color_stripe_bands_no_data"
+  },
+  "color_stall_grid.jpg": {
+    "expected": "reject",
+    "label": "multicolor_stall_tile_grid_no_chart"
+  },
+  "face_plus_color_stalls.jpg": {
+    "expected": "reject",
+    "label": "face_plus_color_stall_tile_talking_head"
+  },
+  "dark_dashboard_bar.jpg": {
+    "expected": "keep",
+    "label": "dark_theme_axis_bar_dashboard"
+  },
+  "light_dashboard_bar.jpg": {
+    "expected": "keep",
+    "label": "light_theme_axis_bar_dashboard_twin"
+  },
+  "dark_multi_card_dashboard.jpg": {
+    "expected": "keep",
+    "label": "dark_multi_card_axis_bar_dashboard"
   }
 }

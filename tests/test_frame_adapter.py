@@ -158,6 +158,9 @@ def test_edge_dense_non_data_static_is_rejected():
         ("barcode_sheet.jpg", "no_evidence"),
         ("face_plus_barcode.jpg", "face_dominant"),
         ("solid_color_blocks.jpg", "no_evidence"),
+        ("stripe_color_bands.jpg", "no_evidence"),
+        ("color_stall_grid.jpg", "no_evidence"),
+        ("face_plus_color_stalls.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -286,6 +289,9 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "spreadsheet_grid.jpg",
         "funnel_chart.jpg",
         "stacked_area_full_plot.jpg",
+        "dark_dashboard_bar.jpg",
+        "light_dashboard_bar.jpg",
+        "dark_multi_card_dashboard.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -306,6 +312,8 @@ def test_ordinary_axis_aligned_charts_stay_eligible(filename):
         "calendar_month_grid.jpg",
         "solid_color_blocks.jpg",
         "barcode_sheet.jpg",
+        "stripe_color_bands.jpg",
+        "color_stall_grid.jpg",
     ),
 )
 def test_multicolor_tile_boards_without_chart_furniture_are_rejected(filename):
@@ -346,6 +354,9 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "spreadsheet_grid.jpg",
         "funnel_chart.jpg",
         "stacked_area_full_plot.jpg",
+        "dark_dashboard_bar.jpg",
+        "light_dashboard_bar.jpg",
+        "dark_multi_card_dashboard.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -393,6 +404,51 @@ def test_dark_and_light_theme_twins_are_both_selectable_evidence():
         "light_theme_text_slide.jpg",
     }
     assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_dark_and_light_dashboard_bar_twins_both_stay_eligible():
+    config = FrameSelectionConfig()
+    dark = analyze_frame(CORPUS / "dark_dashboard_bar.jpg", config)
+    light = analyze_frame(CORPUS / "light_dashboard_bar.jpg", config)
+
+    assert dark.eligible
+    assert light.eligible
+    assert dark.rejection_reason is None
+    assert light.rejection_reason is None
+
+
+def test_dark_and_light_dashboard_bar_twins_are_both_selectable_evidence():
+    selection = select_frame(
+        PresentationSegment(0, 10_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "dark_dashboard_bar.jpg",
+            ),
+            FrameCandidate(
+                FrameProbe(2_000, "post_cut"),
+                CORPUS / "light_dashboard_bar.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name in {
+        "dark_dashboard_bar.jpg",
+        "light_dashboard_bar.jpg",
+    }
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_face_plus_color_stalls_talking_head_is_hard_dropped():
+    features = analyze_frame(
+        CORPUS / "face_plus_color_stalls.jpg", FrameSelectionConfig()
+    )
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+    assert features.compact_face_fraction >= 0.01
 
 
 def test_warm_heatmap_chart_stays_eligible():
@@ -600,6 +656,9 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "barcode_sheet.jpg",
         "face_plus_barcode.jpg",
         "solid_color_blocks.jpg",
+        "stripe_color_bands.jpg",
+        "color_stall_grid.jpg",
+        "face_plus_color_stalls.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -627,6 +686,9 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "spreadsheet_grid.jpg",
         "funnel_chart.jpg",
         "stacked_area_full_plot.jpg",
+        "dark_dashboard_bar.jpg",
+        "light_dashboard_bar.jpg",
+        "dark_multi_card_dashboard.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(

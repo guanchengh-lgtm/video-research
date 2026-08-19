@@ -667,7 +667,9 @@ def _has_evidence_structure(
         max_text_row,
         bar_width_cv,
         glyph_components,
-    ) = _dark_text_stats(gray_values, face_mask, width, height)
+    ) = _dark_text_stats(
+        gray_values, saturation_values, face_mask, width, height
+    )
     # Equal-width solid bar stacks (barcode/stripe sheets) are not glyph text.
     has_uniform_bar_sheet = (
         text_rows >= 5
@@ -727,19 +729,25 @@ def _has_evidence_structure(
     sat_fraction = sum(
         saturation_values[index] >= 90 for index in interior_indexes
     ) / len(interior_indexes)
+    dark_theme = (
+        sum(gray_values[index] < 90 for index in range(frame_area)) / frame_area
+        >= 0.45
+    )
     # Bars / multi-line baselines — not a lone title chip or day-number mass.
     has_text_organization = text_rows >= 1 and (
         max_text_row >= 4
         or text_rows >= 3
         or (text_mass >= 0.045 and text_components >= 3 and max_text_row >= 2)
     )
+    # Stroke caps: dark themes with light axes produce denser edge mass.
+    stroke_ink_cap = 0.20 if dark_theme else 0.12
     # Stroke/label ink only. Bare color tiles are not bidir/color-chart ink.
     has_stroke_ink = (
         short_h_glyphs >= 18
         and short_v_glyphs >= 12
         and h_glyph_fraction >= 0.30
         and v_glyph_fraction >= 0.30
-        and stroke_mass <= 0.12
+        and stroke_mass <= stroke_ink_cap
     )
     has_label_ink = (
         text_mass >= 0.008
@@ -749,11 +757,13 @@ def _has_evidence_structure(
     )
     has_panel_ink = color_panel_mass >= 0.10
     has_chart_ink = has_stroke_ink or has_label_ink or has_panel_ink
-    # Small equal color tiles (launchpad/sticky/icon grids) are not slides.
+    # Small equal color tiles (launchpad/sticky/icon grids) — not grayscale
+    # chart cells that only match the mass/bbox floors.
     has_color_tile_grid = (
         color_panel_count >= 6
         and color_panel_bbox <= 0.12
         and color_panel_mass >= 0.10
+        and (highsat_strong >= 0.02 or sat_fraction >= 0.25)
     )
 
     # Semantic furniture: labels, axis pairs, or dense platform chart structure.
@@ -779,6 +789,7 @@ def _has_evidence_structure(
         and long_h_runs >= 2
         and long_v_runs >= 2
     )
+    axis_stroke_cap = 0.20 if dark_theme else 0.12
     has_axis_furniture = (
         has_axis_lines
         and long_h_runs >= 2
@@ -787,14 +798,15 @@ def _has_evidence_structure(
         and short_v_mass >= 0.005
         and band_count >= 4
         and series_columns >= 8
-        and stroke_mass <= 0.12
+        and stroke_mass <= axis_stroke_cap
     )
     has_platform_furniture = (
         has_stroke_ink
         and band_count >= 10
-        and stroke_mass <= 0.12
+        and stroke_mass <= stroke_ink_cap
         and short_h_runs >= 40
         and short_v_runs >= 18
+        and not has_color_tile_grid
         and (
             sat_fraction >= 0.40
             or highsat_strong >= 0.015
@@ -804,9 +816,10 @@ def _has_evidence_structure(
     has_dense_stroke_furniture = (
         has_stroke_ink
         and band_count >= 12
-        and stroke_mass <= 0.12
+        and stroke_mass <= stroke_ink_cap
         and short_h_runs >= 50
         and short_v_runs >= 25
+        and not has_color_tile_grid
     )
     has_chart_furniture = has_label_furniture or has_axis_furniture
     has_data_furniture = (
@@ -899,8 +912,9 @@ def _has_evidence_structure(
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
     )
-    # Bidir/color need labels/platform/dense furniture or high-column axis marks —
-    # not bare long H/V grids / crossword lattices with low series column counts.
+    # Bidir/color need labels/platform/dense furniture or axis marks —
+    # not bare long H/V grids / crossword lattices / colorful tile lots.
+    axis_bidir_stroke_cap = 0.18 if dark_theme else 0.10
     has_bidir_semantic_furniture = (
         has_label_furniture
         or has_label_ink
@@ -909,31 +923,34 @@ def _has_evidence_structure(
         or (
             has_axis_furniture
             and has_stroke_ink
-            and stroke_mass <= 0.10
-            and series_columns >= 40
-            and series_regularity >= 0.55
+            and stroke_mass <= axis_bidir_stroke_cap
+            and series_columns >= 24
+            and series_regularity >= 0.30
         )
     )
+    structure_hi = 0.30 if dark_theme else 0.22
     has_bidir_chart = (
         canvas_fraction >= 0.28
-        and 0.06 <= structure_edges <= 0.22
+        and 0.06 <= structure_edges <= structure_hi
         and short_h_runs >= 40
         and short_v_runs >= 18
         and band_count >= 5
         and short_h_mass >= 0.018
         and short_v_mass >= 0.005
         and not face_primary
+        and not has_color_tile_grid
         and (has_stroke_ink or has_label_ink)
         and has_bidir_semantic_furniture
     )
     has_color_chart = (
         highsat_strong >= 0.03
         and canvas_fraction >= 0.25
-        and 0.05 <= structure_edges <= 0.22
+        and 0.05 <= structure_edges <= structure_hi
         and short_h_runs >= 35
         and short_v_runs >= 20
         and band_count >= 4
         and not face_primary
+        and not has_color_tile_grid
         and has_chart_ink
         and has_bidir_semantic_furniture
         and (
@@ -983,7 +1000,8 @@ def _has_evidence_structure(
         and has_axis_furniture
         and not face_primary
     )
-    # Partition/treemap blocks need labels/legend/axes — not bare color tiles.
+    # Partition/treemap blocks need real glyph/legend/axes — not stripe bands.
+    has_real_label_marks = glyph_components >= 1 or max_text_row >= 2
     has_partition_chart = (
         canvas_fraction >= 0.20
         and 0.04 <= structure_edges <= 0.22
@@ -993,12 +1011,13 @@ def _has_evidence_structure(
         and not face_primary
         and not has_color_tile_grid
         and (
-            has_label_furniture
+            (has_label_furniture and has_real_label_marks)
             or (
                 has_text_organization
                 and max_text_row >= 2
                 and text_components >= 4
                 and has_glyph_label_structure
+                and has_real_label_marks
             )
             or (has_axis_furniture and color_panel_count >= 4)
         )
@@ -1050,12 +1069,15 @@ def _has_evidence_structure(
         and short_v_mass >= 0.0045
         and short_h_mass >= short_v_mass * 1.2
     )
+    series_stroke_cap = 0.18 if dark_theme else 0.09
+    series_se_hi = 0.28 if dark_theme else 0.18
     has_series_chart = (
         canvas_fraction >= 0.45
-        and 0.03 <= structure_edges <= 0.18
-        and stroke_mass <= 0.09
+        and 0.03 <= structure_edges <= series_se_hi
+        and stroke_mass <= series_stroke_cap
         and band_count >= 3
         and not face_primary
+        and not has_color_tile_grid
         and series_columns >= 10
         and series_regularity >= 0.40
         and has_data_furniture
@@ -1088,25 +1110,35 @@ def _has_evidence_structure(
         )
     )
     # Single-series bar/histogram: regular columns + axes/title, no V-dominance.
+    # Dark dashboards with light axes may exceed light-canvas stroke/se caps.
     has_bar_bodies = (
         color_panel_mass >= 0.015
         or color_panel_count >= 3
         or (0.02 <= sat_fraction <= 0.30 and short_v_mass >= 0.010)
+        or (
+            dark_theme
+            and short_v_mass >= 0.008
+            and short_v_runs >= 12
+            and series_columns >= 12
+        )
     )
+    bar_stroke_cap = 0.20 if dark_theme else 0.10
+    bar_se_hi = 0.30 if dark_theme else 0.20
     has_bar_histogram = (
         canvas_fraction >= 0.40
-        and 0.04 <= structure_edges <= 0.20
+        and 0.04 <= structure_edges <= bar_se_hi
         and not face_primary
+        and not has_color_tile_grid
         and series_columns >= 8
-        and series_regularity >= 0.35
+        and series_regularity >= 0.28
         and short_v_runs >= 12
         and short_v_mass >= 0.008
         and band_count >= 3
-        and stroke_mass <= 0.10
+        and stroke_mass <= bar_stroke_cap
         and has_bar_bodies
         and (
-            has_chart_furniture
-            or has_platform_furniture
+            # Axes/labels required — platform stroke density alone is bookshelves.
+            has_axis_furniture
             or has_label_furniture
             or (
                 color_panel_mass >= 0.25
@@ -1123,6 +1155,7 @@ def _has_evidence_structure(
         and color_panel_mass >= 0.20
         and 0.06 <= color_panel_bbox <= 0.35
         and has_label_furniture
+        and has_real_label_marks
         and text_rows >= 2
         and band_count >= 6
         and not has_color_tile_grid
@@ -1362,21 +1395,35 @@ def _column_series_stats(
 
 
 def _dark_text_stats(
-    gray_values: list[int], face_mask: list[bool], width: int, height: int
+    gray_values: list[int],
+    saturation_values: list[int],
+    face_mask: list[bool],
+    width: int,
+    height: int,
 ) -> tuple[float, int, int, int, float, int]:
     """Organized ink-on-canvas glyph/label stats (polarity-independent).
 
     Returns organized mass, component count, text-row count, largest row size,
     bar-width coefficient of variation, and glyph component count. Dark-on-light
     and light-on-dark bars/glyphs both count when they sit on a contrasting
-    canvas surround. Arbitrary organic blobs do not.
+    canvas surround. High-sat color stripe fills and organic blobs do not.
     """
 
     dark = _ink_text_stats_for_polarity(
-        gray_values, face_mask, width, height, polarity="dark"
+        gray_values,
+        saturation_values,
+        face_mask,
+        width,
+        height,
+        polarity="dark",
     )
     light = _ink_text_stats_for_polarity(
-        gray_values, face_mask, width, height, polarity="light"
+        gray_values,
+        saturation_values,
+        face_mask,
+        width,
+        height,
+        polarity="light",
     )
 
     def _text_quality(
@@ -1394,6 +1441,7 @@ def _dark_text_stats(
 
 def _ink_text_stats_for_polarity(
     gray_values: list[int],
+    saturation_values: list[int],
     face_mask: list[bool],
     width: int,
     height: int,
@@ -1439,7 +1487,15 @@ def _ink_text_stats_for_polarity(
             continue
         aspect = max(bbox_width, bbox_height) / max(min(bbox_width, bbox_height), 1)
         occupancy = len(component) / (bbox_width * bbox_height)
-        is_bar = bbox_width >= 4.0 * max(bbox_height, 1) and bbox_height <= 14
+        mean_sat = sum(saturation_values[index] for index in component) / len(
+            component
+        )
+        # Horizontal baselines/underlines only — not saturated color stripe fills.
+        is_bar = (
+            bbox_width >= 4.0 * max(bbox_height, 1)
+            and bbox_height <= 14
+            and mean_sat <= 145
+        )
         is_glyph = (
             len(component) <= 70
             and bbox_height <= 12
