@@ -139,9 +139,7 @@ def extract_frame(video: Path, timestamp: float, destination: Path, width: int =
     extract_frame_ms(video, round(timestamp * 1_000), destination, width)
 
 
-def extract_frame_ms(
-    video: Path, timestamp_ms: int, destination: Path, width: int = 1280
-) -> None:
+def extract_frame_ms(video: Path, timestamp_ms: int, destination: Path, width: int = 1280) -> None:
     process = subprocess.run(
         [
             "ffmpeg",

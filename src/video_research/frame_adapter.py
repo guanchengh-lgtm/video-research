@@ -157,9 +157,7 @@ def apply_frame_selections(
     """
 
     if len(selections) != len(source.windows):
-        raise ExtractionError(
-            "frame selection count does not match canonical coverage windows"
-        )
+        raise ExtractionError("frame selection count does not match canonical coverage windows")
 
     windows = []
     frames = []
@@ -290,41 +288,27 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
     edge_values = list(edges.get_flattened_data())
     width, height = image.size
     frame_area = width * height
-    interior_indexes = [
-        y * width + x
-        for y in range(1, height - 1)
-        for x in range(1, width - 1)
-    ]
-    edge_fraction = (
-        sum(edge_values[index] > config.edge_threshold for index in interior_indexes)
-        / len(interior_indexes)
-    )
+    interior_indexes = [y * width + x for y in range(1, height - 1) for x in range(1, width - 1)]
+    edge_fraction = sum(
+        edge_values[index] > config.edge_threshold for index in interior_indexes
+    ) / len(interior_indexes)
 
     warm_mask = tuple(
-        _is_skin_tone(pixel, config.skin_max_saturation)
-        for pixel in image.get_flattened_data()
+        _is_skin_tone(pixel, config.skin_max_saturation) for pixel in image.get_flattened_data()
     )
     warm_fraction = sum(warm_mask) / len(warm_mask)
-    face_regions = _face_like_regions(
-        warm_mask, gray_values, edge_values, width, height, config
-    )
+    face_regions = _face_like_regions(warm_mask, gray_values, edge_values, width, height, config)
     compact_face_regions = tuple(
         region
         for region in face_regions
         if region.bbox_fraction <= config.face_component_max_bbox_fraction
     )
-    component_fraction, bbox_fraction, component_occupancy = _largest_region_stats(
-        face_regions
-    )
+    component_fraction, bbox_fraction, component_occupancy = _largest_region_stats(face_regions)
     face_mass = sum(region.fraction for region in face_regions)
     compact_face_fraction, _, _ = _largest_region_stats(compact_face_regions)
     face_mask = _region_bbox_mask(compact_face_regions, width, height, frame_area)
-    face_primary = (
-        face_mass >= config.face_primary_mass_fraction
-        or (
-            face_mass > 0.0
-            and component_fraction >= config.face_primary_largest_fraction
-        )
+    face_primary = face_mass >= config.face_primary_mass_fraction or (
+        face_mass > 0.0 and component_fraction >= config.face_primary_largest_fraction
     )
     has_face = face_mass >= config.small_face_component_fraction
     has_evidence = _has_evidence_structure(
@@ -339,9 +323,7 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
         has_face,
         config,
     )
-    blank_or_transition = (
-        variance < config.min_variance or edge_fraction < config.min_edge_fraction
-    )
+    blank_or_transition = variance < config.min_variance or edge_fraction < config.min_edge_fraction
     if blank_or_transition:
         rejection = "blank_or_transition"
     elif not has_evidence:
@@ -452,15 +434,12 @@ def frame_difference(left: Path, right: Path, config: FrameSelectionConfig) -> f
             right_source.convert("L").resize(config.analysis_size).get_flattened_data()
         )
     return round(
-        sum(abs(a - b) for a, b in zip(left_pixels, right_pixels, strict=True))
-        / len(left_pixels),
+        sum(abs(a - b) for a, b in zip(left_pixels, right_pixels, strict=True)) / len(left_pixels),
         3,
     )
 
 
-def _is_skin_tone(
-    pixel: tuple[int, int, int], max_saturation: float = 0.62
-) -> bool:
+def _is_skin_tone(pixel: tuple[int, int, int], max_saturation: float = 0.62) -> bool:
     """RGB skin proxy that excludes hot chart/UI ink."""
 
     red, green, blue = pixel
@@ -550,9 +529,9 @@ def _face_like_regions(
             edge_values[index] > config.edge_threshold for index in component
         ) / len(component)
         mean_gray = sum(gray_values[index] for index in component) / len(component)
-        internal_variance = sum(
-            (gray_values[index] - mean_gray) ** 2 for index in component
-        ) / len(component)
+        internal_variance = sum((gray_values[index] - mean_gray) ** 2 for index in component) / len(
+            component
+        )
         textured = (
             internal_edges >= config.face_internal_edge_fraction
             or internal_variance >= config.face_internal_variance
@@ -640,25 +619,26 @@ def _has_evidence_structure(
 
     frame_area = len(gray_values)
     height = frame_area // width
-    canvas_fraction = sum(
-        _is_canvas_pixel(
-            index,
-            gray_values,
-            edge_values,
-            saturation_values,
-            warm_mask,
-            face_mask,
+    canvas_fraction = (
+        sum(
+            _is_canvas_pixel(
+                index,
+                gray_values,
+                edge_values,
+                saturation_values,
+                warm_mask,
+                face_mask,
+            )
+            for index in range(frame_area)
         )
-        for index in range(frame_area)
-    ) / frame_area
+        / frame_area
+    )
     highsat_strong = sum(
-        edge_values[index] > config.strong_edge_threshold
-        and saturation_values[index] >= 90
+        edge_values[index] > config.strong_edge_threshold and saturation_values[index] >= 90
         for index in interior_indexes
     ) / len(interior_indexes)
     structure_edges = sum(
-        edge_values[index] > config.strong_edge_threshold
-        for index in interior_indexes
+        edge_values[index] > config.strong_edge_threshold for index in interior_indexes
     ) / len(interior_indexes)
     (
         text_mass,
@@ -667,9 +647,7 @@ def _has_evidence_structure(
         max_text_row,
         bar_width_cv,
         glyph_components,
-    ) = _dark_text_stats(
-        gray_values, saturation_values, face_mask, width, height
-    )
+    ) = _dark_text_stats(gray_values, saturation_values, face_mask, width, height)
     # Equal-width solid bar stacks (barcode/stripe sheets) are not glyph text.
     has_uniform_bar_sheet = (
         text_rows >= 5
@@ -678,11 +656,7 @@ def _has_evidence_structure(
         and bar_width_cv <= 0.06
         and text_mass >= 0.08
     )
-    has_glyph_label_structure = (
-        glyph_components >= 1
-        or max_text_row >= 2
-        or bar_width_cv >= 0.05
-    )
+    has_glyph_label_structure = glyph_components >= 1 or max_text_row >= 2 or bar_width_cv >= 0.05
     # Chart/UI stroke runs ignore face_mask so corner PIP cannot erase ink.
     short_h_mass, short_h_runs, short_h_glyphs = _short_run_stats(
         edge_values,
@@ -698,9 +672,7 @@ def _has_evidence_structure(
         config.strong_edge_threshold,
         horizontal=False,
     )
-    band_count = _structured_band_count(
-        edge_values, width, height, config.strong_edge_threshold
-    )
+    band_count = _structured_band_count(edge_values, width, height, config.strong_edge_threshold)
     color_panel_mass, color_panel_bbox, color_panel_count = _color_panel_stats(
         saturation_values, gray_values, width, height
     )
@@ -726,13 +698,10 @@ def _has_evidence_structure(
     h_glyph_fraction = (short_h_glyphs / short_h_runs) if short_h_runs else 0.0
     v_glyph_fraction = (short_v_glyphs / short_v_runs) if short_v_runs else 0.0
     stroke_mass = short_h_mass + short_v_mass
-    sat_fraction = sum(
-        saturation_values[index] >= 90 for index in interior_indexes
-    ) / len(interior_indexes)
-    dark_theme = (
-        sum(gray_values[index] < 90 for index in range(frame_area)) / frame_area
-        >= 0.45
+    sat_fraction = sum(saturation_values[index] >= 90 for index in interior_indexes) / len(
+        interior_indexes
     )
+    dark_theme = sum(gray_values[index] < 90 for index in range(frame_area)) / frame_area >= 0.45
     # Bars / multi-line baselines — not a lone title chip or day-number mass.
     has_text_organization = text_rows >= 1 and (
         max_text_row >= 4
@@ -773,28 +742,14 @@ def _has_evidence_structure(
     # Bare outlines/maps/module grids without this are not data furniture.
     # Bar-chip rows without glyph components are not label furniture.
     has_label_furniture = has_label_ink or (
-        text_mass >= 0.008
-        and text_components >= 3
-        and max_text_row >= 2
-        and has_real_glyphs
+        text_mass >= 0.008 and text_components >= 3 and max_text_row >= 2 and has_real_glyphs
     )
     has_axis_lines = (
-        long_h_mass >= 0.006
-        and long_v_mass >= 0.003
-        and long_h_runs >= 1
-        and long_v_runs >= 1
-    ) or (
-        long_h_runs >= 2
-        and long_v_runs >= 2
-        and long_h_mass >= 0.008
-        and long_v_mass >= 0.004
-    )
+        long_h_mass >= 0.006 and long_v_mass >= 0.003 and long_h_runs >= 1 and long_v_runs >= 1
+    ) or (long_h_runs >= 2 and long_v_runs >= 2 and long_h_mass >= 0.008 and long_v_mass >= 0.004)
     # Strong L-shaped axes (box/scatter furniture) — not QR finder edges.
     has_strong_axes = (
-        long_h_mass >= 0.014
-        and long_v_mass >= 0.010
-        and long_h_runs >= 2
-        and long_v_runs >= 2
+        long_h_mass >= 0.014 and long_v_mass >= 0.010 and long_h_runs >= 2 and long_v_runs >= 2
     )
     axis_stroke_cap = 0.20 if dark_theme else 0.12
     has_axis_furniture = (
@@ -814,11 +769,7 @@ def _has_evidence_structure(
         and short_h_runs >= 40
         and short_v_runs >= 18
         and not has_color_tile_grid
-        and (
-            sat_fraction >= 0.40
-            or highsat_strong >= 0.015
-            or color_panel_mass >= 0.05
-        )
+        and (sat_fraction >= 0.40 or highsat_strong >= 0.015 or color_panel_mass >= 0.05)
     )
     has_dense_stroke_furniture = (
         has_stroke_ink
@@ -866,14 +817,7 @@ def _has_evidence_structure(
         and (
             has_label_furniture
             or (sat_fraction >= 0.40 and highsat_strong >= 0.015)
-            or (
-                has_axis_lines
-                and (
-                    has_strong_axes
-                    or has_real_glyphs
-                    or highsat_strong >= 0.015
-                )
-            )
+            or (has_axis_lines and (has_strong_axes or has_real_glyphs or highsat_strong >= 0.015))
             or (
                 band_count >= 12
                 and series_columns >= 40
@@ -882,11 +826,7 @@ def _has_evidence_structure(
         )
     )
     has_chart_furniture = has_label_furniture or has_axis_furniture
-    has_data_furniture = (
-        has_chart_furniture
-        or has_axis_lines
-        or has_platform_data_marks
-    )
+    has_data_furniture = has_chart_furniture or has_axis_lines or has_platform_data_marks
     # Node-box + connector diagrams (org/flow/ER) and kanban/card boards:
     # long box rules and/or multi-row bar-chip labels inside frames. Not pure
     # axis charts (no bar-chip text). Multi-column card chrome with text_mass=0
@@ -934,9 +874,7 @@ def _has_evidence_structure(
         and text_mass < 0.03
     )
     has_nondata_card_geometry = (
-        has_box_diagram_geometry
-        or has_card_board_geometry
-        or has_process_card_geometry
+        has_box_diagram_geometry or has_card_board_geometry or has_process_card_geometry
     )
 
     # Glyph/label slides — multi-glyph or varied bar lines, not stripe sheets
@@ -976,11 +914,7 @@ def _has_evidence_structure(
             and stroke_mass <= 0.06
         )
         and (
-            (
-                band_count <= 4
-                and short_h_runs >= 70
-                and not has_axis_lines
-            )
+            (band_count <= 4 and short_h_runs >= 70 and not has_axis_lines)
             or (
                 long_h_runs >= 2
                 and long_v_runs >= 2
@@ -988,11 +922,7 @@ def _has_evidence_structure(
                 and series_regularity >= 0.55
                 and series_columns <= 36
             )
-            or (
-                short_h_runs >= 150
-                and band_count <= 6
-                and not has_axis_lines
-            )
+            or (short_h_runs >= 150 and band_count <= 6 and not has_axis_lines)
         )
     )
     has_stroke_slide_geometry = (
@@ -1029,9 +959,7 @@ def _has_evidence_structure(
     has_stroke_slide = has_stroke_slide_geometry and (
         (
             # Light slides: unsaturated canvas + horizontal text-line dominance.
-            not dark_theme
-            and sat_fraction < 0.25
-            and short_h_mass >= short_v_mass * 1.15
+            not dark_theme and sat_fraction < 0.25 and short_h_mass >= short_v_mass * 1.15
         )
         or (
             # Dark slides: navy fills are high-sat; reject shelf/wood long rules.
@@ -1168,10 +1096,7 @@ def _has_evidence_structure(
             and series_regularity >= 0.50
             and short_v_mass >= short_h_mass * 0.40
         )
-        or (
-            color_panel_mass >= 0.08
-            and structure_edges <= 0.20
-        )
+        or (color_panel_mass >= 0.08 and structure_edges <= 0.20)
     )
     has_bidir_semantic_furniture = (
         has_label_furniture
@@ -1185,10 +1110,7 @@ def _has_evidence_structure(
             and not has_box_diagram_geometry
             and not has_unlabeled_sparse_color
             and (
-                has_strong_axes
-                or has_real_glyphs
-                or sat_fraction < 0.02
-                or highsat_strong >= 0.015
+                has_strong_axes or has_real_glyphs or sat_fraction < 0.02 or highsat_strong >= 0.015
             )
         )
     )
@@ -1219,12 +1141,7 @@ def _has_evidence_structure(
         and not has_nondata_card_geometry
         and has_chart_ink
         and has_bidir_semantic_furniture
-        and (
-            not has_face
-            or color_panel_mass >= 0.08
-            or has_label_ink
-            or color_panel_count >= 3
-        )
+        and (not has_face or color_panel_mass >= 0.08 or has_label_ink or color_panel_count >= 3)
     )
     # High-sat fills need furniture — bare LED/dot matrices are not charts.
     has_highsat_fill = (
@@ -1239,11 +1156,7 @@ def _has_evidence_structure(
         and not face_primary
         and not has_process_card_geometry
         and (
-            (
-                color_panel_bbox <= 0.65
-                and color_panel_count <= 2
-                and has_chart_furniture
-            )
+            (color_panel_bbox <= 0.65 and color_panel_count <= 2 and has_chart_furniture)
             or (
                 # Full-plot multi-band stacked area: horizontal bands + axes.
                 # Bands may merge into one component after downscale.
@@ -1298,12 +1211,7 @@ def _has_evidence_structure(
     has_color_panel = (
         canvas_fraction >= 0.25
         and 0.04 <= structure_edges <= 0.22
-        and (
-            has_highsat_fill
-            or has_soft_area
-            or has_multi_panel
-            or has_partition_chart
-        )
+        and (has_highsat_fill or has_soft_area or has_multi_panel or has_partition_chart)
     )
     # Axis-aligned series: candles/bars (vertical-dominant) or multi-series
     # lines (horizontal-dominant) on a regular column grid — not maps/outlines.
@@ -1313,23 +1221,11 @@ def _has_evidence_structure(
         0.008 <= sat_fraction <= 0.08
         and series_columns >= 30
         and series_regularity >= 0.55
-        and (
-            has_strong_axes
-            or has_label_furniture
-            or has_real_glyphs
-        )
+        and (has_strong_axes or has_label_furniture or has_real_glyphs)
     )
-    colored_edge_series = (
-        highsat_strong >= 0.012
-        and short_h_glyphs >= 6
-        and series_columns >= 10
-    )
+    colored_edge_series = highsat_strong >= 0.012 and short_h_glyphs >= 6 and series_columns >= 10
     # Bar-chip rows alone are not series label support — need real glyphs.
-    has_series_label_support = (
-        text_mass >= 0.004
-        and has_glyph_label_structure
-        and has_real_glyphs
-    )
+    has_series_label_support = text_mass >= 0.004 and has_glyph_label_structure and has_real_glyphs
     has_vertical_series = (
         short_v_runs >= 35
         and short_v_mass >= 0.012
@@ -1406,15 +1302,10 @@ def _has_evidence_structure(
     series_stroke_cap = 0.18 if dark_theme else 0.09
     series_se_hi = 0.28 if dark_theme else 0.18
     has_series_band_support = band_count >= 3 or (
-        band_count >= 2
-        and has_axis_lines
-        and has_horizontal_series
+        band_count >= 2 and has_axis_lines and has_horizontal_series
     )
     has_series_regularity_support = series_regularity >= 0.40 or (
-        series_regularity >= 0.22
-        and has_axis_lines
-        and has_stroke_ink
-        and has_horizontal_series
+        series_regularity >= 0.22 and has_axis_lines and has_stroke_ink and has_horizontal_series
     )
     has_series_chart = (
         canvas_fraction >= 0.45
@@ -1482,12 +1373,7 @@ def _has_evidence_structure(
         color_panel_mass >= 0.015
         or color_panel_count >= 3
         or (0.02 <= sat_fraction <= 0.30 and short_v_mass >= 0.010)
-        or (
-            dark_theme
-            and short_v_mass >= 0.008
-            and short_v_runs >= 12
-            and series_columns >= 12
-        )
+        or (dark_theme and short_v_mass >= 0.008 and short_v_runs >= 12 and series_columns >= 12)
     )
     bar_stroke_cap = 0.20 if dark_theme else 0.10
     bar_se_hi = 0.30 if dark_theme else 0.20
@@ -1521,11 +1407,7 @@ def _has_evidence_structure(
         and (
             color_panel_count >= 2
             or (color_panel_mass >= 0.02 and sat_fraction >= 0.05)
-            or (
-                short_v_mass >= 0.02
-                and series_columns >= 24
-                and not has_face
-            )
+            or (short_v_mass >= 0.02 and series_columns >= 24 and not has_face)
         )
     )
     # Axis-bearing single-series bars: L/frame axes + regular color columns even
@@ -1575,21 +1457,13 @@ def _has_evidence_structure(
                 has_axis_furniture
                 and (
                     # Title-only mass is not bar label furniture.
-                    (
-                        text_mass >= 0.008
-                        and has_real_glyphs
-                        and has_glyph_label_structure
-                    )
+                    (text_mass >= 0.008 and has_real_glyphs and has_glyph_label_structure)
                     or (
                         color_panel_mass >= 0.05
                         and color_panel_count >= 3
                         and color_panel_bbox <= 0.05
                         and series_columns >= 18
-                        and (
-                            has_strong_axes
-                            or has_label_furniture
-                            or has_real_glyphs
-                        )
+                        and (has_strong_axes or has_label_furniture or has_real_glyphs)
                     )
                 )
             )
@@ -1602,13 +1476,7 @@ def _has_evidence_structure(
         and color_panel_bbox <= 0.40
         and text_rows >= 3
         and text_components >= 4
-        and (
-            has_label_furniture
-            or (
-                (has_axis_lines or has_axis_furniture)
-                and text_mass >= 0.008
-            )
-        )
+        and (has_label_furniture or ((has_axis_lines or has_axis_furniture) and text_mass >= 0.008))
         and (
             has_glyph_label_structure
             or (text_rows >= 5 and max_text_row >= 1 and text_mass >= 0.02)
@@ -1752,10 +1620,7 @@ def _has_evidence_structure(
         canvas_fraction >= 0.50
         and 0.03 <= structure_edges <= 0.16
         and color_panel_mass >= 0.10
-        and (
-            color_panel_count <= 4
-            or (color_panel_count <= 8 and color_panel_bbox >= 0.16)
-        )
+        and (color_panel_count <= 4 or (color_panel_count <= 8 and color_panel_bbox >= 0.16))
         and 0.12 <= color_panel_bbox <= 0.60
         and has_stroke_ink
         and stroke_mass <= 0.12
@@ -1793,10 +1658,7 @@ def _has_evidence_structure(
         and not has_node_link_geometry
         and not has_box_diagram_geometry
         and (
-            (
-                color_panel_count >= 2
-                and 0.08 <= color_panel_bbox <= 0.55
-            )
+            (color_panel_count >= 2 and 0.08 <= color_panel_bbox <= 0.55)
             or (
                 # Merged flow body: wide horizontal color mass + link strokes.
                 color_panel_count <= 2
@@ -2002,9 +1864,7 @@ def _short_run_stats(
     return total / frame_area, runs, glyphs
 
 
-def _structured_band_count(
-    edge_values: list[int], width: int, height: int, threshold: int
-) -> int:
+def _structured_band_count(edge_values: list[int], width: int, height: int, threshold: int) -> int:
     """Count separated horizontal bands of moderate edge density."""
 
     dense_rows: list[bool] = []
@@ -2038,8 +1898,7 @@ def _color_panel_stats(
 
     frame_area = width * height
     mask = tuple(
-        saturation_values[index] >= 70 and gray_values[index] > 35
-        for index in range(frame_area)
+        saturation_values[index] >= 70 and gray_values[index] > 35 for index in range(frame_area)
     )
     best_mass = 0.0
     best_bbox = 0.0
@@ -2104,9 +1963,7 @@ def _column_series_stats(
     for gap in small_gaps:
         counts[gap] = counts.get(gap, 0) + 1
     mode_gap = max(counts.items(), key=lambda item: item[1])[0]
-    regular = sum(
-        count for gap, count in counts.items() if abs(gap - mode_gap) <= 1
-    )
+    regular = sum(count for gap, count in counts.items() if abs(gap - mode_gap) <= 1)
     return len(columns), regular / len(small_gaps)
 
 
@@ -2169,13 +2026,11 @@ def _ink_text_stats_for_polarity(
     frame_area = width * height
     if polarity == "dark":
         ink_mask = tuple(
-            (not face_mask[index]) and gray_values[index] < 100
-            for index in range(frame_area)
+            (not face_mask[index]) and gray_values[index] < 100 for index in range(frame_area)
         )
     else:
         ink_mask = tuple(
-            (not face_mask[index]) and gray_values[index] > 155
-            for index in range(frame_area)
+            (not face_mask[index]) and gray_values[index] > 155 for index in range(frame_area)
         )
     components: list[dict[str, float | int | bool]] = []
     for component in _connected_components(ink_mask, width, height):
@@ -2203,15 +2058,9 @@ def _ink_text_stats_for_polarity(
             continue
         aspect = max(bbox_width, bbox_height) / max(min(bbox_width, bbox_height), 1)
         occupancy = len(component) / (bbox_width * bbox_height)
-        mean_sat = sum(saturation_values[index] for index in component) / len(
-            component
-        )
+        mean_sat = sum(saturation_values[index] for index in component) / len(component)
         # Horizontal baselines/underlines only — not saturated color stripe fills.
-        is_bar = (
-            bbox_width >= 4.0 * max(bbox_height, 1)
-            and bbox_height <= 14
-            and mean_sat <= 145
-        )
+        is_bar = bbox_width >= 4.0 * max(bbox_height, 1) and bbox_height <= 14 and mean_sat <= 145
         is_glyph = (
             len(component) <= 70
             and bbox_height <= 12
@@ -2297,17 +2146,8 @@ def _ink_text_stats_for_polarity(
             )
             heights = [int(item["bh"]) for item in row_components]
             height_ok = max(heights) <= min(heights) + 4
-            if (
-                len(row_components) >= 4
-                and height_ok
-                and span_x >= max(22, 3.0 * span_y)
-            ):
-                accepted = True
-            elif (
-                len(row_components) >= 6
-                and height_ok
-                and span_x >= 28
-                and span_x >= 2.2 * span_y
+            if (len(row_components) >= 4 and height_ok and span_x >= max(22, 3.0 * span_y)) or (
+                len(row_components) >= 6 and height_ok and span_x >= 28 and span_x >= 2.2 * span_y
             ):
                 accepted = True
         if accepted:
@@ -2315,15 +2155,11 @@ def _ink_text_stats_for_polarity(
             organized_pixels += sum(int(item["n"]) for item in row_components)
             organized_components += len(row_components)
             organized_glyphs += sum(1 for item in row_components if item["glyph"])
-            bar_widths.extend(
-                float(item["bw"]) for item in row_components if item["bar"]
-            )
+            bar_widths.extend(float(item["bw"]) for item in row_components if item["bar"])
             max_row = max(max_row, len(row_components))
     if len(bar_widths) >= 2:
         mean_width = sum(bar_widths) / len(bar_widths)
-        variance = sum((width - mean_width) ** 2 for width in bar_widths) / len(
-            bar_widths
-        )
+        variance = sum((width - mean_width) ** 2 for width in bar_widths) / len(bar_widths)
         bar_width_cv = (variance**0.5) / mean_width if mean_width > 0 else 0.0
     else:
         bar_width_cv = 0.0

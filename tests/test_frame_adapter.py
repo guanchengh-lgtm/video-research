@@ -228,9 +228,7 @@ def test_vertical_bar_strips_are_not_slide_text(filename, reason):
 
 
 def test_face_plus_vertical_bars_talking_head_is_hard_dropped():
-    features = analyze_frame(
-        CORPUS / "face_plus_vertical_bars.jpg", FrameSelectionConfig()
-    )
+    features = analyze_frame(CORPUS / "face_plus_vertical_bars.jpg", FrameSelectionConfig())
 
     assert not features.eligible
     assert features.rejection_reason == "face_dominant"
@@ -245,9 +243,7 @@ def test_empty_architectural_grid_is_not_chart_evidence():
 
 
 def test_face_plus_empty_grid_talking_head_is_hard_dropped():
-    features = analyze_frame(
-        CORPUS / "face_plus_ceiling_grid.jpg", FrameSelectionConfig()
-    )
+    features = analyze_frame(CORPUS / "face_plus_ceiling_grid.jpg", FrameSelectionConfig())
 
     assert not features.eligible
     assert features.rejection_reason == "face_dominant"
@@ -255,9 +251,7 @@ def test_face_plus_empty_grid_talking_head_is_hard_dropped():
 
 
 def test_gex_dark_chart_with_ordinary_webcam_pip_stays_eligible():
-    features = analyze_frame(
-        CORPUS / "gex_dark_chart_with_webcam_pip.jpg", FrameSelectionConfig()
-    )
+    features = analyze_frame(CORPUS / "gex_dark_chart_with_webcam_pip.jpg", FrameSelectionConfig())
 
     assert features.eligible
     assert features.rejection_reason is None
@@ -511,9 +505,7 @@ def test_dark_and_light_dashboard_bar_twins_are_both_selectable_evidence():
 
 
 def test_face_plus_color_stalls_talking_head_is_hard_dropped():
-    features = analyze_frame(
-        CORPUS / "face_plus_color_stalls.jpg", FrameSelectionConfig()
-    )
+    features = analyze_frame(CORPUS / "face_plus_color_stalls.jpg", FrameSelectionConfig())
 
     assert not features.eligible
     assert features.rejection_reason == "face_dominant"
@@ -811,9 +803,7 @@ def test_arial_sprint_kanban_is_not_chart_evidence():
 
 
 def test_face_plus_arial_sprint_kanban_is_hard_dropped():
-    features = analyze_frame(
-        CORPUS / "face_plus_arial_sprint_kanban.jpg", FrameSelectionConfig()
-    )
+    features = analyze_frame(CORPUS / "face_plus_arial_sprint_kanban.jpg", FrameSelectionConfig())
 
     assert not features.eligible
     assert features.rejection_reason == "face_dominant"
@@ -924,9 +914,7 @@ def test_stroke_slide_does_not_accept_grid_or_diagram_chrome(filename):
 
 
 def test_face_plus_network_diagram_is_hard_dropped():
-    features = analyze_frame(
-        CORPUS / "face_plus_network_topology.jpg", FrameSelectionConfig()
-    )
+    features = analyze_frame(CORPUS / "face_plus_network_topology.jpg", FrameSelectionConfig())
 
     assert not features.eligible
     assert features.rejection_reason == "face_dominant"
@@ -952,9 +940,7 @@ def test_face_plus_network_diagram_is_hard_dropped():
         "real_font_agenda_slide.jpg",
     ),
 )
-def test_node_link_and_transit_maps_lose_to_settled_evidence(
-    distractor_name, evidence_name
-):
+def test_node_link_and_transit_maps_lose_to_settled_evidence(distractor_name, evidence_name):
     selection = select_frame(
         PresentationSegment(0, 10_000),
         (
@@ -1153,9 +1139,7 @@ def test_beige_text_slide_layouts_stay_eligible(filename):
 
 
 def test_closeup_talking_head_cannot_escape_face_dominance_bbox_limit():
-    features = analyze_frame(
-        CORPUS / "orb_0652_closeup_talking_head.jpg", FrameSelectionConfig()
-    )
+    features = analyze_frame(CORPUS / "orb_0652_closeup_talking_head.jpg", FrameSelectionConfig())
 
     assert features.largest_warm_bbox_fraction > 0.45
     assert features.largest_warm_component_occupancy >= 0.45
@@ -1183,12 +1167,8 @@ def test_clean_slide_beats_text_card_with_webcam_pip():
     config = FrameSelectionConfig()
     segment = PresentationSegment(450_000, 455_000)
     candidates = (
-        FrameCandidate(
-            FrameProbe(450_500, "post_cut"), CORPUS / "orb_0730_face_dominant.jpg"
-        ),
-        FrameCandidate(
-            FrameProbe(452_000, "post_cut"), CORPUS / "orb_0654_settled_slide.jpg"
-        ),
+        FrameCandidate(FrameProbe(450_500, "post_cut"), CORPUS / "orb_0730_face_dominant.jpg"),
+        FrameCandidate(FrameProbe(452_000, "post_cut"), CORPUS / "orb_0654_settled_slide.jpg"),
     )
 
     selection = select_frame(segment, candidates, config)
@@ -1201,11 +1181,7 @@ def test_mixed_chart_pip_is_selectable_when_it_is_the_only_evidence():
     segment = PresentationSegment(28_000, 32_000)
     selection = select_frame(
         segment,
-        (
-            FrameCandidate(
-                FrameProbe(28_500, "post_cut"), CORPUS / "chart_with_webcam_pip.jpg"
-            ),
-        ),
+        (FrameCandidate(FrameProbe(28_500, "post_cut"), CORPUS / "chart_with_webcam_pip.jpg"),),
         FrameSelectionConfig(),
     )
 
@@ -1269,9 +1245,7 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
     selection = select_frame(
         segment,
         (
-            FrameCandidate(
-                FrameProbe(500, "post_cut"), CORPUS / "office_wall_clutter.jpg"
-            ),
+            FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / "office_wall_clutter.jpg"),
             FrameCandidate(FrameProbe(2_000, "post_cut"), CORPUS / evidence_name),
         ),
         FrameSelectionConfig(),
@@ -1408,9 +1382,7 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "real_font_pnl_table.jpg",
     ),
 )
-def test_structured_background_non_data_loses_to_settled_evidence(
-    distractor_name, evidence_name
-):
+def test_structured_background_non_data_loses_to_settled_evidence(distractor_name, evidence_name):
     segment = PresentationSegment(0, 10_000)
     selection = select_frame(
         segment,
@@ -1460,9 +1432,7 @@ def test_all_rejected_candidates_leave_visual_unobserved():
     selection = select_frame(
         segment,
         (
-            FrameCandidate(
-                FrameProbe(412_500, "post_cut"), CORPUS / "orb_0652_talking_head.jpg"
-            ),
+            FrameCandidate(FrameProbe(412_500, "post_cut"), CORPUS / "orb_0652_talking_head.jpg"),
             FrameCandidate(
                 FrameProbe(413_000, "post_cut"),
                 CORPUS / "orb_0652_closeup_talking_head.jpg",
@@ -1590,9 +1560,7 @@ def test_clean_candidate_beats_small_face_pip_even_when_pip_is_earlier(tmp_path)
             pip,
             features=_eligible_features(0.95, warm_component=0.02),
         ),
-        FrameCandidate(
-            FrameProbe(1_000, "post_cut"), clean, features=_eligible_features(0.70)
-        ),
+        FrameCandidate(FrameProbe(1_000, "post_cut"), clean, features=_eligible_features(0.70)),
     )
     config = replace(FrameSelectionConfig(), stable_difference=1_000.0)
 

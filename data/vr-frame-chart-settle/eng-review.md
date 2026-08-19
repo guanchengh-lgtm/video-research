@@ -223,23 +223,23 @@ Sequential implementation, no useful worktree split. Interval shapes, scoring, f
 
 ## Implementation Tasks
 
-- [ ] **T1 (P1, human: ~4h / CC: ~30min)** — frame selection — build interval-bounded post-cut and periodic probing.
+- [x] **T1 (P1, human: ~4h / CC: ~30min)** — frame selection — build interval-bounded post-cut and periodic probing.
   - Surfaced by: A1 and outside-voice P1.1
   - Files: `src/video_research/frame_adapter.py`, `tools/extract_evidence_frames.py`, focused tests
   - Verify: 06:52 selects 06:54; rapid cuts never cross boundaries
-- [ ] **T2 (P1, human: ~1d / CC: ~60min)** — frame quality — enforce full-frame evidence and face-dominance policy.
+- [x] **T2 (P1, human: ~1d / CC: ~60min)** — frame quality — enforce full-frame evidence and face-dominance policy.
   - Surfaced by: C1 and outside-voice P1.2
   - Files: adapter, labeled corpus, scoring tests
   - Verify: 0652/0730 fail policy; 0654/GEX pass
-- [ ] **T3 (P1, human: ~4h / CC: ~30min)** — trust integration — fail closed and preserve versioned provenance.
+- [x] **T3 (P1, human: ~4h / CC: ~30min)** — trust integration — fail closed and preserve versioned provenance.
   - Surfaced by: A2, C2, C3, and outside-voice P1.3
   - Files: adapter, tool, failure injection, manifest tests
   - Verify: no eligible material visual is Partial; ffmpeg failure is not fallback
-- [ ] **T4 (P1, human: ~4h / CC: ~30min)** — regression corpus — cover all diagram branches.
+- [x] **T4 (P1, human: ~4h / CC: ~30min)** — regression corpus — cover all diagram branches.
   - Surfaced by: Test Review and outside-voice P1.4
   - Files: `tests/fixtures/evidence_frames/`, selector/tool tests
   - Verify: labeled corpus, `pytest`, and `ruff check .`
-- [ ] **T5 (P2, human: ~30min / CC: ~5min)** — operability — collision-free IDs and bounded analysis.
+- [x] **T5 (P2, human: ~30min / CC: ~5min)** — operability — collision-free IDs and bounded analysis.
   - Surfaced by: C4 and C5
   - Files: tool, adapter, tests
   - Verify: same-second and analysis-grid assertions

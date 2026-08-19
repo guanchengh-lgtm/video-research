@@ -6,9 +6,12 @@ import sys
 from pathlib import Path
 
 import pytest
-from PIL import Image, ImageDraw
+from PIL import Image
 
 TOOL_PATH = Path(__file__).parents[1] / "tools" / "extract_evidence_frames.py"
+CORPUS_CHART = (
+    Path(__file__).parent / "fixtures" / "evidence_frames" / "gex_0028_dark_colorful_chart.jpg"
+)
 
 
 @pytest.fixture(scope="module")
@@ -197,14 +200,11 @@ def _stub_video_pipeline(
 
     def extract(_video, timestamp_ms, destination, width=1280):
         extracted_paths.append(destination.name)
-        image = Image.new("RGB", (320, 180), (4, 7, 14))
-        draw = ImageDraw.Draw(image)
-        for x in range(10, 320, 20):
-            draw.line((x, 15, x, 165), fill=(20, 160, 220), width=2)
-        for y in range(20, 180, 20):
-            draw.line((10, y, 310, y), fill=(230, 90, 30), width=2)
-        draw.text((20, 20), f"chart {timestamp_ms}", fill="white")
-        image.save(destination)
+        # Pipeline stubs must satisfy the live evidence-quality contract so
+        # provenance/selection assertions exercise real keep paths, not bare grids.
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with Image.open(CORPUS_CHART) as image:
+            image.convert("RGB").save(destination, format="JPEG")
 
     monkeypatch.setattr(extractor, "download_video", download)
     monkeypatch.setattr(extractor, "probe_duration_ms", lambda _video: duration_ms)

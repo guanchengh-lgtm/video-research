@@ -231,7 +231,7 @@ land. A source that the envelope does not explicitly admit is out of it.
 
 | # | Decision | Rationale |
 |---|----------|-----------|
-| D1 | Python 3.11+, stdlib only for the core | Matches `tools/extract_evidence_frames.py` and the yt-dlp/ffmpeg/ASR/OCR ecosystem. A stdlib-only core keeps the assurance layer installable and auditable; extraction adapters may add dependencies. |
+| D1 | Python 3.11+, stdlib only for the core | A stdlib-only core keeps the assurance layer installable and auditable. Impure extraction edges (`frame_adapter`, `tools/extract_evidence_frames.py`, and future yt-dlp/ffmpeg/ASR/OCR adapters) may add dependencies via optional extras such as `[frames]`. |
 | D2 | Timestamps are integer milliseconds | Float timelines produce spurious sub-nanosecond gaps in a partition check. Integer ms makes G3 exact. Raw engine timestamps are preserved alongside (spec: "**Evidence References** preserve raw timestamps"). |
 | D3 | Extraction, claim extraction, and verification are ports (Protocols) | Spec user story 35 and the provisional status of `mcp-video-analyzer`. Slice 1 ships fixture implementations; engine adapters land after the trial gate. |
 | D4 | The verifier receives the serialized pack re-read from disk | Makes "cold context, not the generator's reasoning" a property of the type signature rather than of prompt discipline. Also catches serialization drift. |
@@ -276,7 +276,8 @@ Each item is deferred with a reason. None is cut from the specification.
 
 | Asset | Reuse |
 |-------|-------|
-| `tools/extract_evidence_frames.py` | Prior art for scene-change frame selection and manifest shape. Not imported: it hardcodes `/Users/stanley/...` paths and is an ad-hoc script. Its manifest shape informs `ExtractedSource.frames`. Left in place, untouched. |
+| `src/video_research/frame_adapter.py` | Impure Evidence Frame selection behind the extraction port: scene cuts become Presentation Segments, interval-bounded probes are ranked under an evidence-quality contract, and rejections map to `UNOBSERVED` so existing gates fail closed. Never decides run status. Locked by `tests/fixtures/evidence_frames/` and `tests/test_frame_adapter.py`. |
+| `tools/extract_evidence_frames.py` | Fail-closed ffmpeg/yt-dlp entry point that drives `frame_adapter`, publishes a versioned selected/rejected manifest, and stays outside the pure core (`[frames]` optional extra for Pillow). |
 | `CONTEXT.md` | Directly becomes the domain type names. No translation layer. |
 | `research/github-video-summary-skills.md` | Supplies the integration risks encoded as D3 and D9. |
 
