@@ -486,5 +486,21 @@
   "real_font_pnl_table.jpg": {
     "expected": "keep",
     "label": "real_font_pnl_desk_table"
+  },
+  "real_font_bullet_priorities.jpg": {
+    "expected": "keep",
+    "label": "real_font_non_agenda_bullet_slide"
+  },
+  "real_font_agenda_six.jpg": {
+    "expected": "keep",
+    "label": "real_font_six_item_agenda_slide"
+  },
+  "ordinary_multi_series_line.jpg": {
+    "expected": "keep",
+    "label": "ordinary_real_font_multi_series_line"
+  },
+  "ordinary_real_pie.jpg": {
+    "expected": "keep",
+    "label": "ordinary_real_font_pie_chart"
   }
 }

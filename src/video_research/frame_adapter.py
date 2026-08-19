@@ -935,30 +935,53 @@ def _has_evidence_structure(
         and not has_color_tile_grid
         and not has_box_diagram_geometry
     )
-    # Real-font agenda/bullet slides: sparse multi-row text-line strokes after
-    # downscale lose glyph mass. Dense grid/calendar bands, node-box chrome,
-    # and connector diagrams are not text-line organization.
-    has_stroke_slide = (
-        canvas_fraction >= 0.70
-        and 0.025 <= structure_edges <= 0.08
-        and stroke_mass <= 0.08
-        and 30 <= short_h_runs <= 90
-        and short_v_runs <= 45
-        and short_h_mass >= 0.012
-        and short_h_mass >= short_v_mass * 1.8
-        and 3 <= band_count <= 8
-        and series_regularity >= 0.45
-        and 10 <= series_columns <= 28
-        and color_panel_mass < 0.08
-        and sat_fraction < 0.15
-        and long_h_runs <= 3
-        and long_v_runs <= 1
-        and long_h_mass <= 0.015
+    # Real-font multi-row bullet/agenda slides: text-line stroke organization
+    # after downscale, without calendar grids, node-box chrome, or connectors.
+    # Thresholds are semantic (line-like H strokes, moderate bands) rather than
+    # a single fixture envelope.
+    has_stroke_slide_geometry = (
+        canvas_fraction >= 0.65
+        and 0.018 <= structure_edges <= 0.14
+        and 0.015 <= stroke_mass <= 0.09
+        and short_h_runs >= 28
+        and short_h_glyphs >= 22
+        and h_glyph_fraction >= 0.62
+        and 3 <= band_count <= 14
+        and 10 <= series_columns <= 55
+        and series_regularity >= 0.40
+        and color_panel_mass < 0.10
         and not face_primary
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
         and not has_box_diagram_geometry
         and not has_card_board_geometry
+        # Month grids: many bands, few active columns.
+        and not (band_count >= 12 and series_columns <= 20)
+        # Node/connector chrome: weak H-glyph text or long box rules.
+        and not (long_h_runs >= 8 and h_glyph_fraction < 0.72)
+        and not (
+            short_v_runs >= 55
+            and short_v_mass >= 0.022
+            and long_h_runs >= 2
+            and h_glyph_fraction < 0.72
+        )
+    )
+    has_stroke_slide = has_stroke_slide_geometry and (
+        (
+            # Light slides: unsaturated canvas + horizontal text-line dominance.
+            not dark_theme
+            and sat_fraction < 0.25
+            and short_h_mass >= short_v_mass * 1.15
+        )
+        or (
+            # Dark slides: navy fills are high-sat; reject shelf/wood long rules.
+            dark_theme
+            and long_h_runs < 5
+            and long_h_mass < 0.02
+            and band_count >= 4
+            and short_h_runs >= 30
+            and h_glyph_fraction >= 0.70
+        )
     )
     has_organized_text = (
         text_mass >= 0.008
@@ -1245,12 +1268,6 @@ def _has_evidence_structure(
         and has_glyph_label_structure
         and has_real_glyphs
     )
-    has_series_support = (
-        has_series_label_support
-        or color_panel_mass >= 0.10
-        or sparse_color_bodies
-        or colored_edge_series
-    )
     has_vertical_series = (
         short_v_runs >= 35
         and short_v_mass >= 0.012
@@ -1267,6 +1284,35 @@ def _has_evidence_structure(
         and short_v_runs >= 15
         and short_v_mass >= 0.0045
         and short_h_mass >= short_v_mass * 1.2
+    )
+    # Ordinary multi-series lines: L-axes + stroke series without dense columns.
+    # Reject barcode/stripe walls (high bar text mass, no glyphs, no strong axes).
+    has_axis_series_ink = (
+        has_axis_lines
+        and has_stroke_ink
+        and (has_horizontal_series or has_vertical_series)
+        and series_columns >= 12
+        and series_regularity >= 0.22
+        and short_h_mass >= 0.012
+        and band_count >= 2
+        and long_h_runs >= 1
+        and long_v_runs >= 1
+        and not face_primary
+        and not has_uniform_bar_sheet
+        and not has_box_diagram_geometry
+        and not has_card_board_geometry
+        and (
+            has_real_glyphs
+            or has_strong_axes
+            or text_mass < 0.05
+        )
+    )
+    has_series_support = (
+        has_series_label_support
+        or color_panel_mass >= 0.10
+        or sparse_color_bodies
+        or colored_edge_series
+        or has_axis_series_ink
     )
     # Series charts need real marks — not box-border axis_lines alone.
     has_series_data_furniture = (
@@ -1285,16 +1331,28 @@ def _has_evidence_structure(
     )
     series_stroke_cap = 0.18 if dark_theme else 0.09
     series_se_hi = 0.28 if dark_theme else 0.18
+    has_series_band_support = band_count >= 3 or (
+        band_count >= 2
+        and has_axis_lines
+        and has_horizontal_series
+    )
+    has_series_regularity_support = series_regularity >= 0.40 or (
+        series_regularity >= 0.22
+        and has_axis_lines
+        and has_stroke_ink
+        and has_horizontal_series
+    )
     has_series_chart = (
         canvas_fraction >= 0.45
         and 0.03 <= structure_edges <= series_se_hi
         and stroke_mass <= series_stroke_cap
-        and band_count >= 3
+        and has_series_band_support
         and not face_primary
         and not has_color_tile_grid
         and not has_box_diagram_geometry
+        and not has_uniform_bar_sheet
         and series_columns >= 10
-        and series_regularity >= 0.40
+        and has_series_regularity_support
         and has_series_data_furniture
         and has_series_support
         and (has_vertical_series or has_horizontal_series)
@@ -1539,6 +1597,31 @@ def _has_evidence_structure(
         and not has_color_tile_grid
         and not has_box_diagram_geometry
     )
+    # Real-font pie/donut: balanced H/V stroke around a compact color disk.
+    # Legend/title glyphs often vanish at analysis size.
+    _radial_run_max = max(short_h_runs, short_v_runs, 1)
+    has_radial_color_chart = (
+        canvas_fraction >= 0.50
+        and 0.03 <= structure_edges <= 0.14
+        and color_panel_mass >= 0.14
+        and color_panel_count <= 4
+        and 0.15 <= color_panel_bbox <= 0.55
+        and has_stroke_ink
+        and stroke_mass <= 0.10
+        and short_h_runs >= 45
+        and short_v_runs >= 45
+        and abs(short_h_runs - short_v_runs) / _radial_run_max <= 0.35
+        and h_glyph_fraction >= 0.55
+        and v_glyph_fraction >= 0.55
+        and sat_fraction >= 0.10
+        and band_count >= 4
+        and series_columns >= 24
+        and not face_primary
+        and not has_color_tile_grid
+        and not has_box_diagram_geometry
+        and not (long_h_runs >= 3 and long_v_runs >= 3)
+        and not (long_h_mass >= 0.03 and long_v_mass >= 0.01)
+    )
     # Multi-card KPI / sparkline strips with titles and values.
     has_kpi_card_strip = (
         canvas_fraction >= 0.45
@@ -1586,6 +1669,7 @@ def _has_evidence_structure(
         or has_bar_histogram
         or has_labeled_band_chart
         or has_radial_or_gauge_chart
+        or has_radial_color_chart
         or has_kpi_card_strip
         or has_labeled_form_ui
     )

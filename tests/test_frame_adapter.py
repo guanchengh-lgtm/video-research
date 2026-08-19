@@ -742,19 +742,19 @@ def test_arial_sprint_kanban_stable_pair_loses_to_later_gex():
     assert selection.observation is VisualObservation.OBSERVED
 
 
-def test_real_font_agenda_slide_stays_eligible():
-    features = analyze_frame(
-        CORPUS / "real_font_agenda_slide.jpg", FrameSelectionConfig()
-    )
-
-    assert features.eligible
-    assert features.rejection_reason is None
-
-
-def test_real_font_axis_histogram_stays_eligible():
-    features = analyze_frame(
-        CORPUS / "real_font_axis_histogram.jpg", FrameSelectionConfig()
-    )
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "real_font_agenda_slide.jpg",
+        "real_font_bullet_priorities.jpg",
+        "real_font_agenda_six.jpg",
+        "real_font_axis_histogram.jpg",
+        "ordinary_multi_series_line.jpg",
+        "ordinary_real_pie.jpg",
+    ),
+)
+def test_real_font_slides_and_ordinary_charts_stay_eligible(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
 
     assert features.eligible
     assert features.rejection_reason is None
@@ -793,12 +793,18 @@ def test_stroke_slide_does_not_accept_grid_or_diagram_chrome(filename):
     "filename",
     (
         "real_font_agenda_slide.jpg",
+        "real_font_bullet_priorities.jpg",
+        "real_font_agenda_six.jpg",
         "real_font_axis_histogram.jpg",
         "real_font_spreadsheet.jpg",
         "real_font_pnl_table.jpg",
+        "ordinary_multi_series_line.jpg",
+        "ordinary_real_pie.jpg",
+        "line_chart_multi_series.jpg",
+        "pie_donut_chart.jpg",
     ),
 )
-def test_real_font_slide_and_histogram_are_selectable_alone(filename):
+def test_real_font_slide_and_ordinary_charts_are_selectable_alone(filename):
     selection = select_frame(
         PresentationSegment(0, 5_000),
         (FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / filename),),
