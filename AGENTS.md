@@ -24,10 +24,12 @@ that makes either weaker is a change to the product, not a refactor.
 
 ## Layering
 
-`adapters` → `ports` → core (`timeline`, `claims`, `diagnostics`, `run`, `gates`,
-`status`) → `views`. The core is pure: no I/O, no model calls, nothing
-engine-specific. Anything impure enters through a Protocol in `ports.py`.
-Rationale and what is deliberately deferred:
+`adapters` / `frame_adapter` → `ports` → core (`timeline`, `claims`,
+`diagnostics`, `run`, `gates`, `status`) → `views`. The core is pure: no I/O,
+no model calls, nothing engine-specific. Anything impure enters through a
+Protocol in `ports.py`. `frame_adapter` may select or reject Evidence Frames
+and map rejections to `UNOBSERVED`; it never decides run status. Rationale and
+what is deliberately deferred:
 [`docs/plans/0001-assurance-core-implementation.md`](docs/plans/0001-assurance-core-implementation.md).
 
 ## Sharp edges
@@ -53,6 +55,10 @@ Rationale and what is deliberately deferred:
 - **Failure injection mutates a copy of `tests/fixtures/talk_benchmark.json`.**
   Changing that fixture changes every injection test. If a test needs different
   source material, add a fixture rather than editing the golden one.
+- **Evidence-frame keep/reject labels live in one corpus.**
+  `tests/fixtures/evidence_frames/labels.json` plus the JPEGs beside it lock
+  talking-head drops and chart/slide keeps. Prefer adding a labeled fixture over
+  regenerating desktop packs.
 
 ## Domain language is binding
 

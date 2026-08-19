@@ -1,0 +1,570 @@
+{
+  "gex_0028_dark_colorful_chart.jpg": {
+    "expected": "keep",
+    "label": "dark_colorful_platform_chart"
+  },
+  "chart_with_webcam_pip.jpg": {
+    "expected": "keep",
+    "label": "chart_with_webcam_pip"
+  },
+  "orb_0652_talking_head.jpg": {
+    "expected": "reject",
+    "label": "full_talking_head"
+  },
+  "orb_0652_closeup_talking_head.jpg": {
+    "expected": "reject",
+    "label": "closeup_talking_head_boundary"
+  },
+  "orb_0654_settled_slide.jpg": {
+    "expected": "keep",
+    "label": "settled_tariff_slide"
+  },
+  "orb_0730_face_dominant.jpg": {
+    "expected": "keep",
+    "label": "text_card_with_webcam_pip"
+  },
+  "orb_0918_grayscale_chart.jpg": {
+    "expected": "keep",
+    "label": "grayscale_chart"
+  },
+  "volatility_0058_bright_slide.jpg": {
+    "expected": "keep",
+    "label": "bright_text_slide"
+  },
+  "studio_talking_head.jpg": {
+    "expected": "reject",
+    "label": "studio_talking_head_no_data"
+  },
+  "small_face_no_data.jpg": {
+    "expected": "reject",
+    "label": "small_face_plain_backdrop"
+  },
+  "beige_text_slide.jpg": {
+    "expected": "keep",
+    "label": "beige_tan_text_slide"
+  },
+  "beige_text_slide_header.jpg": {
+    "expected": "keep",
+    "label": "beige_tan_text_slide_header"
+  },
+  "beige_text_slide_letterbox.jpg": {
+    "expected": "keep",
+    "label": "beige_tan_text_slide_letterbox"
+  },
+  "beige_text_slide_rail.jpg": {
+    "expected": "keep",
+    "label": "beige_tan_text_slide_rail"
+  },
+  "office_wall_clutter.jpg": {
+    "expected": "reject",
+    "label": "cool_office_wall_no_data"
+  },
+  "warm_heatmap_chart.jpg": {
+    "expected": "keep",
+    "label": "warm_orange_heatmap_chart"
+  },
+  "orange_area_chart.jpg": {
+    "expected": "keep",
+    "label": "warm_orange_area_chart"
+  },
+  "compact_amber_heatmap.jpg": {
+    "expected": "keep",
+    "label": "compact_medium_sat_amber_heatmap_face_proxy"
+  },
+  "blinds_talking_head.jpg": {
+    "expected": "reject",
+    "label": "blinds_structured_bg_talking_head"
+  },
+  "brick_talking_head.jpg": {
+    "expected": "reject",
+    "label": "brick_structured_bg_talking_head"
+  },
+  "edge_dense_static.jpg": {
+    "expected": "reject",
+    "label": "edge_dense_non_data_static"
+  },
+  "bookshelf_talking_head.jpg": {
+    "expected": "reject",
+    "label": "bookshelf_structured_bg_talking_head"
+  },
+  "bookshelf_only.jpg": {
+    "expected": "reject",
+    "label": "bookshelf_no_data"
+  },
+  "vertical_blinds.jpg": {
+    "expected": "reject",
+    "label": "vertical_blinds_no_data"
+  },
+  "vertical_blinds_talking_head.jpg": {
+    "expected": "reject",
+    "label": "vertical_blinds_talking_head"
+  },
+  "office_panel_talking_head.jpg": {
+    "expected": "reject",
+    "label": "office_panel_talking_head"
+  },
+  "empty_whiteboard.jpg": {
+    "expected": "reject",
+    "label": "empty_whiteboard_border_only"
+  },
+  "empty_ceiling_grid.jpg": {
+    "expected": "reject",
+    "label": "empty_architectural_ceiling_grid"
+  },
+  "face_plus_ceiling_grid.jpg": {
+    "expected": "reject",
+    "label": "face_plus_empty_grid_talking_head"
+  },
+  "gex_dark_chart_with_webcam_pip.jpg": {
+    "expected": "keep",
+    "label": "gex_dark_chart_ordinary_webcam_pip"
+  },
+  "foliage_only.jpg": {
+    "expected": "reject",
+    "label": "foliage_organic_no_data"
+  },
+  "foliage_dense.jpg": {
+    "expected": "reject",
+    "label": "dense_foliage_no_data"
+  },
+  "city_night_windows.jpg": {
+    "expected": "reject",
+    "label": "lit_city_windows_no_data"
+  },
+  "thin_candlestick_chart.jpg": {
+    "expected": "keep",
+    "label": "sparse_thin_candlestick_chart"
+  },
+  "dark_candlestick_chart.jpg": {
+    "expected": "keep",
+    "label": "dark_platform_candlestick_chart"
+  },
+  "line_chart_multi_series.jpg": {
+    "expected": "keep",
+    "label": "multi_series_line_chart"
+  },
+  "pie_donut_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_pie_donut_chart"
+  },
+  "stacked_bar_chart.jpg": {
+    "expected": "keep",
+    "label": "stacked_bar_chart"
+  },
+  "dark_theme_text_slide.jpg": {
+    "expected": "keep",
+    "label": "dark_theme_kpi_text_slide"
+  },
+  "light_theme_text_slide.jpg": {
+    "expected": "keep",
+    "label": "light_theme_kpi_text_slide_twin"
+  },
+  "app_icon_grid.jpg": {
+    "expected": "reject",
+    "label": "app_icon_tile_grid_no_chart"
+  },
+  "sticky_note_wall.jpg": {
+    "expected": "reject",
+    "label": "sticky_note_tile_wall_no_chart"
+  },
+  "traffic_light_board.jpg": {
+    "expected": "reject",
+    "label": "traffic_light_tile_board_no_chart"
+  },
+  "soft_orange_area_chart.jpg": {
+    "expected": "keep",
+    "label": "soft_orange_area_chart_with_furniture"
+  },
+  "corporate_blue_area_chart.jpg": {
+    "expected": "keep",
+    "label": "corporate_blue_area_chart_with_furniture"
+  },
+  "launchpad_with_labels.jpg": {
+    "expected": "reject",
+    "label": "launchpad_icon_grid_with_caption_chips"
+  },
+  "titled_sticky_wall.jpg": {
+    "expected": "reject",
+    "label": "titled_sticky_note_wall_no_chart"
+  },
+  "calendar_month_grid.jpg": {
+    "expected": "reject",
+    "label": "empty_month_calendar_grid_no_chart"
+  },
+  "simple_blue_histogram.jpg": {
+    "expected": "keep",
+    "label": "simple_blue_bar_histogram_with_axes"
+  },
+  "finance_volume_histogram.jpg": {
+    "expected": "keep",
+    "label": "finance_mid_sat_volume_histogram"
+  },
+  "piano_keys_vertical.jpg": {
+    "expected": "reject",
+    "label": "vertical_bar_piano_keys_no_data"
+  },
+  "zebra_vertical_stripes.jpg": {
+    "expected": "reject",
+    "label": "vertical_zebra_stripes_no_data"
+  },
+  "face_plus_vertical_bars.jpg": {
+    "expected": "reject",
+    "label": "face_plus_vertical_bar_talking_head"
+  },
+  "logo_wall.jpg": {
+    "expected": "reject",
+    "label": "logo_wall_edge_scatter_no_chart"
+  },
+  "led_dot_matrix.jpg": {
+    "expected": "reject",
+    "label": "led_dot_matrix_no_chart"
+  },
+  "simple_map_outline.jpg": {
+    "expected": "reject",
+    "label": "simple_map_outline_no_chart"
+  },
+  "qr_module_grid.jpg": {
+    "expected": "reject",
+    "label": "qr_module_grid_no_glyph_text"
+  },
+  "code_editor_stack.jpg": {
+    "expected": "reject",
+    "label": "code_editor_line_stack_no_chart"
+  },
+  "box_whisker_chart.jpg": {
+    "expected": "keep",
+    "label": "box_whisker_chart_with_axes"
+  },
+  "labeled_treemap.jpg": {
+    "expected": "keep",
+    "label": "labeled_treemap_partition_chart"
+  },
+  "sparse_scatter_chart.jpg": {
+    "expected": "keep",
+    "label": "sparse_scatter_with_axes"
+  },
+  "dense_numeric_table.jpg": {
+    "expected": "keep",
+    "label": "dense_numeric_table_with_header"
+  },
+  "comic_panel_storyboard.jpg": {
+    "expected": "reject",
+    "label": "comic_panel_storyboard_no_data"
+  },
+  "blueprint_grid.jpg": {
+    "expected": "reject",
+    "label": "architectural_blueprint_grid_no_data"
+  },
+  "crossword_grid.jpg": {
+    "expected": "reject",
+    "label": "crossword_grid_no_data"
+  },
+  "face_plus_comic_panels.jpg": {
+    "expected": "reject",
+    "label": "face_plus_comic_panel_talking_head"
+  },
+  "spreadsheet_grid.jpg": {
+    "expected": "keep",
+    "label": "spreadsheet_grid_with_header_cells"
+  },
+  "funnel_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_multi_band_funnel_chart"
+  },
+  "barcode_sheet.jpg": {
+    "expected": "reject",
+    "label": "barcode_stripe_sheet_no_table"
+  },
+  "face_plus_barcode.jpg": {
+    "expected": "reject",
+    "label": "face_plus_barcode_talking_head"
+  },
+  "solid_color_blocks.jpg": {
+    "expected": "reject",
+    "label": "furniture_free_color_blocks_no_partition"
+  },
+  "stacked_area_full_plot.jpg": {
+    "expected": "keep",
+    "label": "full_plot_multiband_stacked_area"
+  },
+  "stripe_color_bands.jpg": {
+    "expected": "reject",
+    "label": "horizontal_color_stripe_bands_no_data"
+  },
+  "color_stall_grid.jpg": {
+    "expected": "reject",
+    "label": "multicolor_stall_tile_grid_no_chart"
+  },
+  "face_plus_color_stalls.jpg": {
+    "expected": "reject",
+    "label": "face_plus_color_stall_tile_talking_head"
+  },
+  "dark_dashboard_bar.jpg": {
+    "expected": "keep",
+    "label": "dark_theme_axis_bar_dashboard"
+  },
+  "light_dashboard_bar.jpg": {
+    "expected": "keep",
+    "label": "light_theme_axis_bar_dashboard_twin"
+  },
+  "dark_multi_card_dashboard.jpg": {
+    "expected": "keep",
+    "label": "dark_multi_card_axis_bar_dashboard"
+  },
+  "busy_calendar_events.jpg": {
+    "expected": "reject",
+    "label": "busy_calendar_event_chips_no_chart"
+  },
+  "process_flowchart.jpg": {
+    "expected": "reject",
+    "label": "process_flowchart_box_diagram_no_chart"
+  },
+  "pcb_trace_board.jpg": {
+    "expected": "reject",
+    "label": "pcb_trace_board_no_chart"
+  },
+  "face_plus_busy_calendar.jpg": {
+    "expected": "reject",
+    "label": "face_plus_busy_calendar_talking_head"
+  },
+  "face_plus_flowchart.jpg": {
+    "expected": "reject",
+    "label": "face_plus_flowchart_talking_head"
+  },
+  "face_plus_pcb_traces.jpg": {
+    "expected": "reject",
+    "label": "face_plus_pcb_trace_talking_head"
+  },
+  "horizontal_bullet_kpi.jpg": {
+    "expected": "keep",
+    "label": "horizontal_bullet_kpi_bar_chart"
+  },
+  "equalizer_spectrum_wall.jpg": {
+    "expected": "reject",
+    "label": "equalizer_spectrum_bar_wall_no_chart"
+  },
+  "unlabeled_band_wall.jpg": {
+    "expected": "reject",
+    "label": "unlabeled_color_band_wall_no_partition"
+  },
+  "face_plus_equalizer.jpg": {
+    "expected": "reject",
+    "label": "face_plus_equalizer_talking_head"
+  },
+  "kanban_card_board.jpg": {
+    "expected": "reject",
+    "label": "kanban_card_board_ui_chrome_no_chart"
+  },
+  "face_plus_kanban.jpg": {
+    "expected": "reject",
+    "label": "face_plus_kanban_talking_head"
+  },
+  "unlabeled_color_regions.jpg": {
+    "expected": "reject",
+    "label": "unlabeled_color_region_blobs_no_chart"
+  },
+  "radar_spider_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_radar_spider_chart"
+  },
+  "gauge_readout_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_gauge_readout_chart"
+  },
+  "kpi_sparkline_cards.jpg": {
+    "expected": "keep",
+    "label": "multi_card_kpi_sparkline_strip"
+  },
+  "labeled_form_ui.jpg": {
+    "expected": "keep",
+    "label": "labeled_form_settings_ui"
+  },
+  "industrial_panel_grid.jpg": {
+    "expected": "reject",
+    "label": "industrial_panel_grid_axis_geometry_no_data"
+  },
+  "appliance_keypad_grid.jpg": {
+    "expected": "reject",
+    "label": "appliance_keypad_grid_no_data"
+  },
+  "face_plus_keypad.jpg": {
+    "expected": "reject",
+    "label": "face_plus_keypad_talking_head"
+  },
+  "face_plus_panel_grid.jpg": {
+    "expected": "reject",
+    "label": "face_plus_industrial_panel_talking_head"
+  },
+  "org_chart_boxes.jpg": {
+    "expected": "reject",
+    "label": "org_chart_node_box_diagram_no_chart"
+  },
+  "decision_tree_boxes.jpg": {
+    "expected": "reject",
+    "label": "decision_tree_node_box_diagram_no_chart"
+  },
+  "er_entity_boxes.jpg": {
+    "expected": "reject",
+    "label": "er_entity_box_diagram_no_chart"
+  },
+  "er_entity_dense.jpg": {
+    "expected": "reject",
+    "label": "er_entity_dense_attribute_bars_no_chart"
+  },
+  "face_plus_org_chart.jpg": {
+    "expected": "reject",
+    "label": "face_plus_org_chart_talking_head"
+  },
+  "face_plus_decision_tree.jpg": {
+    "expected": "reject",
+    "label": "face_plus_decision_tree_talking_head"
+  },
+  "face_plus_er_diagram.jpg": {
+    "expected": "reject",
+    "label": "face_plus_er_diagram_talking_head"
+  },
+  "dense_kanban_board.jpg": {
+    "expected": "reject",
+    "label": "dense_kanban_card_board"
+  },
+  "labeled_kanban_board.jpg": {
+    "expected": "reject",
+    "label": "labeled_kanban_card_board"
+  },
+  "waterfall_bridge_chart.jpg": {
+    "expected": "keep",
+    "label": "waterfall_bridge_chart"
+  },
+  "gantt_timeline_chart.jpg": {
+    "expected": "keep",
+    "label": "gantt_timeline_chart"
+  },
+  "unlabeled_colorbar_schedule_board.jpg": {
+    "expected": "reject",
+    "label": "unlabeled_colorbar_schedule_board_no_chart"
+  },
+  "face_plus_colorbar_schedule_board.jpg": {
+    "expected": "reject",
+    "label": "face_plus_colorbar_schedule_board_talking_head"
+  },
+  "arial_sprint_kanban.jpg": {
+    "expected": "reject",
+    "label": "arial_sprint_kanban_card_chrome_no_chart"
+  },
+  "face_plus_arial_sprint_kanban.jpg": {
+    "expected": "reject",
+    "label": "face_plus_arial_sprint_kanban_talking_head"
+  },
+  "real_font_agenda_slide.jpg": {
+    "expected": "keep",
+    "label": "real_font_agenda_bullet_slide"
+  },
+  "real_font_axis_histogram.jpg": {
+    "expected": "keep",
+    "label": "real_font_axis_bar_histogram"
+  },
+  "light_month_calendar.jpg": {
+    "expected": "reject",
+    "label": "light_month_calendar_grid_no_chart"
+  },
+  "connector_mindmap.jpg": {
+    "expected": "reject",
+    "label": "connector_mindmap_diagram_no_chart"
+  },
+  "light_org_chart.jpg": {
+    "expected": "reject",
+    "label": "light_org_chart_node_boxes_no_chart"
+  },
+  "face_plus_light_calendar.jpg": {
+    "expected": "reject",
+    "label": "face_plus_light_calendar_talking_head"
+  },
+  "real_font_spreadsheet.jpg": {
+    "expected": "keep",
+    "label": "real_font_spreadsheet_table"
+  },
+  "real_font_pnl_table.jpg": {
+    "expected": "keep",
+    "label": "real_font_pnl_desk_table"
+  },
+  "real_font_bullet_priorities.jpg": {
+    "expected": "keep",
+    "label": "real_font_non_agenda_bullet_slide"
+  },
+  "real_font_agenda_six.jpg": {
+    "expected": "keep",
+    "label": "real_font_six_item_agenda_slide"
+  },
+  "ordinary_multi_series_line.jpg": {
+    "expected": "keep",
+    "label": "ordinary_real_font_multi_series_line"
+  },
+  "ordinary_real_pie.jpg": {
+    "expected": "keep",
+    "label": "ordinary_real_font_pie_chart"
+  },
+  "network_topology.jpg": {
+    "expected": "reject",
+    "label": "network_topology_node_link"
+  },
+  "decision_flow_links.jpg": {
+    "expected": "reject",
+    "label": "decision_flow_node_link"
+  },
+  "mindmap_node_links.jpg": {
+    "expected": "reject",
+    "label": "mindmap_node_link_diagram"
+  },
+  "transit_metro_map.jpg": {
+    "expected": "reject",
+    "label": "transit_route_map"
+  },
+  "face_plus_network_topology.jpg": {
+    "expected": "reject",
+    "label": "face_plus_network_diagram"
+  },
+  "stacked_horizontal_bars.jpg": {
+    "expected": "keep",
+    "label": "stacked_horizontal_bar_chart"
+  },
+  "small_multiples_line_panels.jpg": {
+    "expected": "keep",
+    "label": "small_multiples_line_panels"
+  },
+  "sticky_process_board.jpg": {
+    "expected": "reject",
+    "label": "sticky_process_board_no_chart"
+  },
+  "blue_sticky_process_board.jpg": {
+    "expected": "reject",
+    "label": "blue_sticky_process_board_no_chart"
+  },
+  "face_plus_blue_sticky_process.jpg": {
+    "expected": "reject",
+    "label": "face_plus_blue_sticky_process_talking_head"
+  },
+  "white_card_process_board.jpg": {
+    "expected": "reject",
+    "label": "white_card_process_board_no_chart"
+  },
+  "face_plus_white_card_process.jpg": {
+    "expected": "reject",
+    "label": "face_plus_white_card_process_talking_head"
+  },
+  "sankey_flow_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_sankey_flow_chart"
+  },
+  "ordinary_donut_legend.jpg": {
+    "expected": "keep",
+    "label": "ordinary_donut_with_legend"
+  },
+  "stacked_area_multiband.jpg": {
+    "expected": "keep",
+    "label": "axis_bearing_multiband_stacked_area"
+  },
+  "dark_kpi_sparkline_cards.jpg": {
+    "expected": "keep",
+    "label": "dark_kpi_sparkline_cards"
+  }
+}

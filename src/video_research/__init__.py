@@ -3,8 +3,9 @@
 The package is three layers, and the import direction between them is the
 architecture:
 
-    adapters   impure edges — extraction, claim extraction, verification
-       │       (each implements a protocol from `ports`)
+    adapters   impure edges — extraction, claim extraction, verification,
+       │       and Evidence Frame selection (`frame_adapter`)
+       │       (each implements or sits behind a protocol from `ports`)
        ▼
     core       timeline · claims · diagnostics · run · gates · status
        │       pure, no I/O, no model calls; decides complete/partial/failed
