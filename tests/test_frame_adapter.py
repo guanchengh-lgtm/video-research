@@ -123,6 +123,24 @@ def test_edge_dense_non_data_static_is_rejected():
     assert features.rejection_reason == "no_evidence"
 
 
+@pytest.mark.parametrize(
+    ("filename", "reason"),
+    (
+        ("bookshelf_talking_head.jpg", "face_dominant"),
+        ("bookshelf_only.jpg", "no_evidence"),
+        ("vertical_blinds.jpg", "no_evidence"),
+        ("vertical_blinds_talking_head.jpg", "face_dominant"),
+        ("office_panel_talking_head.jpg", "face_dominant"),
+        ("empty_whiteboard.jpg", "no_evidence"),
+    ),
+)
+def test_structured_non_data_backgrounds_are_rejected(filename, reason):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == reason
+
+
 def test_warm_heatmap_chart_stays_eligible():
     features = analyze_frame(CORPUS / "warm_heatmap_chart.jpg", FrameSelectionConfig())
 
@@ -262,25 +280,68 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "blinds_talking_head.jpg",
         "brick_talking_head.jpg",
         "edge_dense_static.jpg",
+        "bookshelf_talking_head.jpg",
+        "bookshelf_only.jpg",
+        "vertical_blinds.jpg",
+        "vertical_blinds_talking_head.jpg",
+        "office_panel_talking_head.jpg",
+        "empty_whiteboard.jpg",
     ),
 )
-def test_structured_background_non_data_loses_to_settled_chart(distractor_name):
+@pytest.mark.parametrize(
+    "evidence_name",
+    (
+        "gex_0028_dark_colorful_chart.jpg",
+        "beige_text_slide.jpg",
+        "beige_text_slide_header.jpg",
+        "chart_with_webcam_pip.jpg",
+    ),
+)
+def test_structured_background_non_data_loses_to_settled_evidence(
+    distractor_name, evidence_name
+):
     segment = PresentationSegment(0, 10_000)
     selection = select_frame(
         segment,
         (
             FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / distractor_name),
-            FrameCandidate(
-                FrameProbe(2_000, "post_cut"),
-                CORPUS / "gex_0028_dark_colorful_chart.jpg",
-            ),
+            FrameCandidate(FrameProbe(2_000, "post_cut"), CORPUS / evidence_name),
         ),
         FrameSelectionConfig(),
     )
 
     assert selection.selected is not None
-    assert selection.selected.path.name == "gex_0028_dark_colorful_chart.jpg"
+    assert selection.selected.path.name == evidence_name
     assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_clean_preference_ignores_noncompact_warm_slide_fill(tmp_path):
+    """Clean preference uses compact face/PIP mass, not non-compact warm fills."""
+
+    pip = tmp_path / "pip.png"
+    slide = tmp_path / "slide.png"
+    Image.new("RGB", (32, 32), "navy").save(pip)
+    Image.new("RGB", (32, 32), "white").save(slide)
+    selection = select_frame(
+        PresentationSegment(0, 2_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                pip,
+                features=_eligible_features(0.95, warm_component=0.02, compact_face=0.02),
+            ),
+            FrameCandidate(
+                FrameProbe(1_000, "post_cut"),
+                slide,
+                # Large warm fill (beige slide) but no compact face/PIP mass.
+                features=_eligible_features(0.70, warm_component=0.70, compact_face=0.0),
+            ),
+        ),
+        replace(FrameSelectionConfig(), stable_difference=1_000.0),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path == slide
 
 
 def test_all_rejected_candidates_leave_visual_unobserved():
@@ -463,7 +524,10 @@ def test_invalid_duration_is_rejected():
         build_presentation_segments([], 0)
 
 
-def _eligible_features(score: float, warm_component: float = 0.0) -> FrameFeatures:
+def _eligible_features(
+    score: float, warm_component: float = 0.0, compact_face: float | None = None
+) -> FrameFeatures:
+    pip = warm_component if compact_face is None else compact_face
     return FrameFeatures(
         variance=100.0,
         edge_fraction=0.1,
@@ -472,6 +536,7 @@ def _eligible_features(score: float, warm_component: float = 0.0) -> FrameFeatur
         largest_warm_component_fraction=warm_component,
         largest_warm_bbox_fraction=warm_component,
         largest_warm_component_occupancy=1.0 if warm_component else 0.0,
+        compact_face_fraction=pip,
         evidence_score=score,
         eligible=True,
     )

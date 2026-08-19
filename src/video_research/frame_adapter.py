@@ -84,6 +84,7 @@ class FrameFeatures:
     largest_warm_component_fraction: float
     largest_warm_bbox_fraction: float
     largest_warm_component_occupancy: float
+    compact_face_fraction: float
     evidence_score: float
     eligible: bool
     rejection_reason: str | None = None
@@ -316,17 +317,8 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
         face_regions
     )
     face_mass = sum(region.fraction for region in face_regions)
+    compact_face_fraction, _, _ = _largest_region_stats(compact_face_regions)
     face_mask = _region_bbox_mask(compact_face_regions, width, height, frame_area)
-    has_evidence = _has_evidence_structure(
-        gray_values,
-        edge_values,
-        saturation_channel,
-        warm_mask,
-        face_mask,
-        interior_indexes,
-        width,
-        config,
-    )
     face_primary = (
         face_mass >= config.face_primary_mass_fraction
         or (
@@ -335,6 +327,17 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
         )
     )
     has_face = face_mass >= config.small_face_component_fraction
+    has_evidence = _has_evidence_structure(
+        gray_values,
+        edge_values,
+        saturation_channel,
+        warm_mask,
+        face_mask,
+        interior_indexes,
+        width,
+        face_primary,
+        config,
+    )
     blank_or_transition = (
         variance < config.min_variance or edge_fraction < config.min_edge_fraction
     )
@@ -369,6 +372,7 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
         largest_warm_component_fraction=round(component_fraction, 6),
         largest_warm_bbox_fraction=round(bbox_fraction, 6),
         largest_warm_component_occupancy=round(component_occupancy, 6),
+        compact_face_fraction=round(compact_face_fraction, 6),
         evidence_score=round(max(evidence_score, 0.0), 6),
         eligible=rejection is None,
         rejection_reason=rejection,
@@ -412,8 +416,7 @@ def select_frame(
     clean = [
         item
         for item in eligible
-        if item.features.largest_warm_component_fraction
-        < config.small_face_component_fraction
+        if item.features.compact_face_fraction < config.small_face_component_fraction
     ]
     preferred = clean or eligible
     preferred_ids = {id(item) for item in preferred}
@@ -617,17 +620,18 @@ def _has_evidence_structure(
     face_mask: list[bool],
     interior_indexes: list[int],
     width: int,
+    face_primary: bool,
     config: FrameSelectionConfig,
 ) -> bool:
     """True when pixels show data-bearing chart/slide/text/UI organization.
 
-    Empty canvas and generic geometry (blinds, brick, panel, static) are not
-    evidence. Positive text/chart/labeled-UI structure is required.
+    Generic geometry (blinds, bookshelves, panels, empty borders, static) is not
+    evidence. Positive glyph, label, or chart-ink organization is required.
     """
 
     frame_area = len(gray_values)
     height = frame_area // width
-    canvas_pixels = sum(
+    canvas_fraction = sum(
         _is_canvas_pixel(
             index,
             gray_values,
@@ -637,35 +641,7 @@ def _has_evidence_structure(
             face_mask,
         )
         for index in range(frame_area)
-    )
-    canvas_fraction = canvas_pixels / frame_area
-
-    text_on_canvas = 0
-    for y in range(1, height - 1):
-        row = y * width
-        for x in range(1, width - 1):
-            index = row + x
-            if face_mask[index] or warm_mask[index] or edge_values[index] <= 48:
-                continue
-            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                neighbor = (y + dy) * width + (x + dx)
-                if _is_canvas_pixel(
-                    neighbor,
-                    gray_values,
-                    edge_values,
-                    saturation_values,
-                    warm_mask,
-                    face_mask,
-                ):
-                    text_on_canvas += 1
-                    break
-    text_fraction = text_on_canvas / frame_area
-
-    lowsat_strong = sum(
-        edge_values[index] > config.strong_edge_threshold
-        and saturation_values[index] < 90
-        for index in interior_indexes
-    ) / len(interior_indexes)
+    ) / frame_area
     highsat_strong = sum(
         edge_values[index] > config.strong_edge_threshold
         and saturation_values[index] >= 90
@@ -675,189 +651,198 @@ def _has_evidence_structure(
         edge_values[index] > config.strong_edge_threshold
         for index in interior_indexes
     ) / len(interior_indexes)
-
-    vertical_edges, horizontal_run_mass, vertical_run_mass = _axis_structure(
-        gray_values, edge_values, width, height, config.strong_edge_threshold
+    text_mass, text_components = _dark_text_stats(
+        gray_values, face_mask, width, height
     )
-    row_period = _row_periodicity(edge_values, width, height, config.strong_edge_threshold)
-    text_mass = _dark_text_mass(gray_values, face_mask, width, height)
-
-    has_text_slide = (
-        canvas_fraction >= config.evidence_canvas_with_text_fraction
-        and text_fraction >= config.evidence_text_on_canvas_fraction
+    short_h_mass, short_h_runs = _short_run_stats(
+        edge_values,
+        face_mask,
+        width,
+        height,
+        config.strong_edge_threshold,
+        horizontal=True,
     )
-    has_canvas_structure = (
-        canvas_fraction >= config.evidence_canvas_with_structure_fraction
-        and structure_edges >= config.evidence_structure_edge_fraction
+    short_v_mass, short_v_runs = _short_run_stats(
+        edge_values,
+        face_mask,
+        width,
+        height,
+        config.strong_edge_threshold,
+        horizontal=False,
+    )
+    band_count = _structured_band_count(
+        edge_values, width, height, config.strong_edge_threshold
+    )
+    color_panel_mass, color_panel_bbox = _color_panel_stats(
+        saturation_values, gray_values, width, height
+    )
+
+    has_slide_text = (
+        text_mass >= 0.02
+        and text_components >= 3
+        and canvas_fraction >= 0.40
+        and 0.05 <= structure_edges <= 0.25
+    )
+    has_organized_text = (
+        text_mass >= 0.008
+        and text_components >= 4
+        and canvas_fraction >= 0.18
+        and 0.06 <= structure_edges <= 0.26
+        and short_h_runs >= 35
+        and short_v_runs >= 30
+        and not face_primary
+    )
+    has_content_slide = (
+        text_mass >= 0.012
+        and text_components >= 6
+        and canvas_fraction >= 0.15
+        and 0.08 <= structure_edges <= 0.40
+        and short_h_runs >= 80
+        and short_v_runs >= 80
+        and band_count >= 8
+    )
+    has_bidir_chart = (
+        canvas_fraction >= 0.28
+        and 0.07 <= structure_edges <= 0.20
+        and short_h_runs >= 45
+        and short_v_runs >= 28
+        and band_count >= 6
+        and short_h_mass >= 0.02
+        and short_v_mass >= 0.008
+        and not face_primary
     )
     has_color_chart = (
-        highsat_strong >= config.evidence_highsat_strong_edge_fraction
-        and canvas_fraction >= 0.20
-        and structure_edges >= config.evidence_structure_edge_fraction
+        highsat_strong >= 0.04
+        and canvas_fraction >= 0.25
+        and 0.07 <= structure_edges <= 0.22
+        and short_h_runs >= 40
+        and short_v_runs >= 25
+        and band_count >= 5
+        and not face_primary
     )
-    has_organized_lowsat = (
-        lowsat_strong >= config.evidence_lowsat_strong_edge_fraction
-        and canvas_fraction >= 0.18
-        and (
-            vertical_edges >= 0.025
-            or text_mass >= 0.015
-            or vertical_run_mass >= 0.01
-        )
-        and row_period < 0.15
-    )
-    has_grid = (
-        horizontal_run_mass >= 0.05
-        and vertical_run_mass >= 0.02
-        and min(horizontal_run_mass, vertical_run_mass)
-        / max(horizontal_run_mass, vertical_run_mass)
-        > 0.08
+    has_color_panel = (
+        highsat_strong >= 0.08
+        and canvas_fraction >= 0.25
         and structure_edges >= 0.10
-    )
-    if not (
-        has_text_slide
-        or has_canvas_structure
-        or has_color_chart
-        or has_organized_lowsat
-        or has_grid
-    ):
-        return False
-
-    blinds_texture = (
-        row_period >= 0.10
-        and text_mass < 0.02
-        and highsat_strong < 0.06
-        and vertical_run_mass < 0.015
-        and (
-            vertical_edges < 0.035
-            or horizontal_run_mass >= 0.15
-            or row_period >= 0.18
-        )
-    )
-    brick_texture = (
-        highsat_strong >= 0.15
-        and canvas_fraction < 0.12
-        and text_fraction < 0.02
-    )
-    noise_texture = (
-        structure_edges >= 0.30
-        and (horizontal_run_mass + vertical_run_mass) < 0.06
-        and text_mass < 0.05
-    )
-    return not (blinds_texture or brick_texture or noise_texture)
-
-
-def _axis_structure(
-    gray_values: list[int],
-    edge_values: list[int],
-    width: int,
-    height: int,
-    strong_edge_threshold: int,
-) -> tuple[float, float, float]:
-    """Vertical gradient mass plus long horizontal/vertical strong-edge runs."""
-
-    frame_area = width * height
-    vertical_edges = 0
-    gradient_threshold = 30
-    for y in range(1, height - 1):
-        row = y * width
-        for x in range(1, width - 1):
-            index = row + x
-            horizontal_grad = abs(gray_values[index + 1] - gray_values[index - 1])
-            vertical_grad = abs(gray_values[index + width] - gray_values[index - width])
-            if horizontal_grad >= gradient_threshold and vertical_grad < gradient_threshold * 0.6:
-                vertical_edges += 1
-    horizontal_run_mass = _long_run_mass(
-        edge_values, width, height, strong_edge_threshold, horizontal=True
-    )
-    vertical_run_mass = _long_run_mass(
-        edge_values, width, height, strong_edge_threshold, horizontal=False
+        and color_panel_mass >= 0.12
+        and color_panel_bbox <= 0.55
     )
     return (
-        vertical_edges / frame_area,
-        horizontal_run_mass,
-        vertical_run_mass,
+        has_slide_text
+        or has_organized_text
+        or has_content_slide
+        or has_bidir_chart
+        or has_color_chart
+        or has_color_panel
     )
 
 
-def _long_run_mass(
+def _short_run_stats(
     edge_values: list[int],
+    face_mask: list[bool],
     width: int,
     height: int,
     threshold: int,
     *,
     horizontal: bool,
-    min_length: int = 6,
-) -> float:
+    min_length: int = 3,
+    max_length: int = 22,
+) -> tuple[float, int]:
+    """Mass and count of short interior edge runs (ticks, glyphs, UI strokes)."""
+
     total = 0
+    runs = 0
     frame_area = width * height
     if horizontal:
-        for y in range(1, height - 1):
+        for y in range(3, height - 3):
             run = 0
             row = y * width
-            for x in range(1, width - 1):
-                if edge_values[row + x] > threshold:
+            for x in range(3, width - 3):
+                index = row + x
+                if (not face_mask[index]) and edge_values[index] > threshold:
                     run += 1
                 else:
-                    if run >= min_length:
+                    if min_length <= run <= max_length:
                         total += run
+                        runs += 1
                     run = 0
-            if run >= min_length:
+            if min_length <= run <= max_length:
                 total += run
+                runs += 1
     else:
-        for x in range(1, width - 1):
+        for x in range(3, width - 3):
             run = 0
-            for y in range(1, height - 1):
-                if edge_values[y * width + x] > threshold:
+            for y in range(3, height - 3):
+                index = y * width + x
+                if (not face_mask[index]) and edge_values[index] > threshold:
                     run += 1
                 else:
-                    if run >= min_length:
+                    if min_length <= run <= max_length:
                         total += run
+                        runs += 1
                     run = 0
-            if run >= min_length:
+            if min_length <= run <= max_length:
                 total += run
-    return total / frame_area
+                runs += 1
+    return total / frame_area, runs
 
 
-def _row_periodicity(
+def _structured_band_count(
     edge_values: list[int], width: int, height: int, threshold: int
-) -> float:
-    """Score repeated parallel horizontal bands (blinds / louver texture)."""
+) -> int:
+    """Count separated horizontal bands of moderate edge density."""
 
-    dense_rows = []
+    dense_rows: list[bool] = []
     for y in range(height):
         row = y * width
-        dense_rows.append(
-            sum(edge_values[row + x] > threshold for x in range(width)) / width > 0.25
-        )
-    gaps: list[int] = []
-    index = 0
-    while index < height:
-        if not dense_rows[index]:
-            index += 1
+        density = sum(edge_values[row + x] > threshold for x in range(width)) / width
+        dense_rows.append(0.05 <= density <= 0.55)
+    bands = 0
+    in_band = False
+    for dense in dense_rows:
+        if dense and not in_band:
+            bands += 1
+            in_band = True
+        elif not dense:
+            in_band = False
+    return bands
+
+
+def _color_panel_stats(
+    saturation_values: list[int],
+    gray_values: list[int],
+    width: int,
+    height: int,
+) -> tuple[float, float]:
+    """Largest compact saturated panel mass and bbox fraction (chart blocks)."""
+
+    frame_area = width * height
+    mask = tuple(
+        70 <= saturation_values[index] <= 180 and gray_values[index] > 40
+        for index in range(frame_area)
+    )
+    best_mass = 0.0
+    best_bbox = 0.0
+    for component in _connected_components(mask, width, height):
+        mass = len(component) / frame_area
+        if mass < 0.05 or mass <= best_mass:
             continue
-        streak_end = index
-        while streak_end < height and dense_rows[streak_end]:
-            streak_end += 1
-        gap_end = streak_end
-        while gap_end < height and not dense_rows[gap_end]:
-            gap_end += 1
-        if streak_end > index and gap_end > streak_end:
-            gaps.append(gap_end - streak_end)
-        index = max(streak_end, index + 1)
-    if len(gaps) < 4:
-        return 0.0
-    mean_gap = sum(gaps) / len(gaps)
-    if mean_gap <= 0:
-        return 0.0
-    variance = sum((gap - mean_gap) ** 2 for gap in gaps) / len(gaps)
-    coefficient = (variance ** 0.5) / mean_gap
-    return (len(gaps) / height) * (1.0 / (1.0 + coefficient))
+        xs = [index % width for index in component]
+        ys = [index // width for index in component]
+        bbox_w = max(xs) - min(xs) + 1
+        bbox_h = max(ys) - min(ys) + 1
+        bbox_fraction = (bbox_w * bbox_h) / frame_area
+        occupancy = len(component) / (bbox_w * bbox_h)
+        if occupancy >= 0.40 and bbox_fraction <= 0.70:
+            best_mass = mass
+            best_bbox = bbox_fraction
+    return best_mass, best_bbox
 
 
-def _dark_text_mass(
+def _dark_text_stats(
     gray_values: list[int], face_mask: list[bool], width: int, height: int
-) -> float:
-    """Mass of compact dark components that look like glyphs, not hairlines."""
+) -> tuple[float, int]:
+    """Mass and count of compact dark components that look like glyphs."""
 
     frame_area = width * height
     dark_mask = tuple(
@@ -865,6 +850,7 @@ def _dark_text_mass(
         for index in range(frame_area)
     )
     text_pixels = 0
+    text_components = 0
     for component in _connected_components(dark_mask, width, height):
         if len(component) < 5 or len(component) > frame_area * 0.15:
             continue
@@ -874,6 +860,18 @@ def _dark_text_mass(
         bbox_height = max(ys) - min(ys) + 1
         if bbox_width >= width * 0.7 and bbox_height <= 3:
             continue
-        if bbox_height >= 3 and bbox_width >= 3:
-            text_pixels += len(component)
-    return text_pixels / frame_area
+        if bbox_height < 3 or bbox_width < 3:
+            continue
+        border_touch = sum(
+            1
+            for index in component
+            if (index % width) < 2
+            or (index % width) >= width - 2
+            or (index // width) < 2
+            or (index // width) >= height - 2
+        ) / len(component)
+        if border_touch > 0.45:
+            continue
+        text_pixels += len(component)
+        text_components += 1
+    return text_pixels / frame_area, text_components

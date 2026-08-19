@@ -82,5 +82,29 @@
   "edge_dense_static.jpg": {
     "expected": "reject",
     "label": "edge_dense_non_data_static"
+  },
+  "bookshelf_talking_head.jpg": {
+    "expected": "reject",
+    "label": "bookshelf_structured_bg_talking_head"
+  },
+  "bookshelf_only.jpg": {
+    "expected": "reject",
+    "label": "bookshelf_no_data"
+  },
+  "vertical_blinds.jpg": {
+    "expected": "reject",
+    "label": "vertical_blinds_no_data"
+  },
+  "vertical_blinds_talking_head.jpg": {
+    "expected": "reject",
+    "label": "vertical_blinds_talking_head"
+  },
+  "office_panel_talking_head.jpg": {
+    "expected": "reject",
+    "label": "office_panel_talking_head"
+  },
+  "empty_whiteboard.jpg": {
+    "expected": "reject",
+    "label": "empty_whiteboard_border_only"
   }
 }
