@@ -158,5 +158,25 @@
   "light_theme_text_slide.jpg": {
     "expected": "keep",
     "label": "light_theme_kpi_text_slide_twin"
+  },
+  "app_icon_grid.jpg": {
+    "expected": "reject",
+    "label": "app_icon_tile_grid_no_chart"
+  },
+  "sticky_note_wall.jpg": {
+    "expected": "reject",
+    "label": "sticky_note_tile_wall_no_chart"
+  },
+  "traffic_light_board.jpg": {
+    "expected": "reject",
+    "label": "traffic_light_tile_board_no_chart"
+  },
+  "soft_orange_area_chart.jpg": {
+    "expected": "keep",
+    "label": "soft_orange_area_chart_with_furniture"
+  },
+  "corporate_blue_area_chart.jpg": {
+    "expected": "keep",
+    "label": "corporate_blue_area_chart_with_furniture"
   }
 }

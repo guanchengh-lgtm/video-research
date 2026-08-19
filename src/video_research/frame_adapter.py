@@ -758,26 +758,46 @@ def _has_evidence_structure(
             or color_panel_count >= 3
         )
     )
-    # Large filled chart blocks (heatmap/area) need strong color edges so
-    # clothing blobs on talking heads do not qualify. Multi-block pie/bar
-    # bodies are allowed only when the frame is not face-primary.
+    # Chart furniture: labels/axes/series organization — not bare tile grids.
+    has_label_furniture = text_mass >= 0.006 and (
+        text_components >= 2 or has_text_organization or max_text_row >= 2
+    )
+    has_axis_furniture = (
+        short_h_mass >= 0.015
+        and short_v_mass >= 0.008
+        and band_count >= 5
+        and series_columns >= 12
+        and series_regularity >= 0.40
+        and stroke_mass <= 0.10
+    )
+    has_chart_furniture = has_label_furniture or has_axis_furniture
+    # High-sat fills (heatmap) keep via strong color edges alone. Soft/mid
+    # single-fill area charts need title/axes/label furniture. Multi-block
+    # panels require the same furniture so app-icon/sticky/light boards drop.
+    has_highsat_fill = (
+        color_panel_mass >= 0.12
+        and color_panel_bbox <= 0.60
+        and highsat_strong >= 0.08
+    )
+    has_soft_area = (
+        color_panel_mass >= 0.12
+        and color_panel_bbox <= 0.60
+        and color_panel_count <= 2
+        and has_chart_furniture
+        and not face_primary
+    )
+    has_multi_panel = (
+        color_panel_count >= 4
+        and color_panel_mass >= 0.08
+        and color_panel_bbox <= 0.40
+        and highsat_strong >= 0.015
+        and has_chart_furniture
+        and not face_primary
+    )
     has_color_panel = (
         canvas_fraction >= 0.25
         and 0.04 <= structure_edges <= 0.22
-        and (
-            (
-                color_panel_mass >= 0.12
-                and color_panel_bbox <= 0.60
-                and highsat_strong >= 0.08
-            )
-            or (
-                color_panel_count >= 4
-                and color_panel_mass >= 0.08
-                and color_panel_bbox <= 0.40
-                and highsat_strong >= 0.015
-                and not face_primary
-            )
-        )
+        and (has_highsat_fill or has_soft_area or has_multi_panel)
     )
     # Axis-aligned series: candles/bars (vertical-dominant) or multi-series
     # lines (horizontal-dominant) on a regular column grid — not bookshelves.

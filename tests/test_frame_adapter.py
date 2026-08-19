@@ -137,6 +137,9 @@ def test_edge_dense_non_data_static_is_rejected():
         ("foliage_only.jpg", "no_evidence"),
         ("foliage_dense.jpg", "no_evidence"),
         ("city_night_windows.jpg", "no_evidence"),
+        ("app_icon_grid.jpg", "no_evidence"),
+        ("sticky_note_wall.jpg", "face_dominant"),
+        ("traffic_light_board.jpg", "no_evidence"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -205,6 +208,8 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "line_chart_multi_series.jpg",
         "pie_donut_chart.jpg",
         "stacked_bar_chart.jpg",
+        "soft_orange_area_chart.jpg",
+        "corporate_blue_area_chart.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -217,11 +222,40 @@ def test_ordinary_axis_aligned_charts_stay_eligible(filename):
 @pytest.mark.parametrize(
     "filename",
     (
+        "app_icon_grid.jpg",
+        "sticky_note_wall.jpg",
+        "traffic_light_board.jpg",
+    ),
+)
+def test_multicolor_tile_boards_without_chart_furniture_are_rejected(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason in {"no_evidence", "face_dominant"}
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ("soft_orange_area_chart.jpg", "corporate_blue_area_chart.jpg"),
+)
+def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+    assert features.mean_saturation < 80
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
         "line_chart_multi_series.jpg",
         "pie_donut_chart.jpg",
         "stacked_bar_chart.jpg",
         "dark_theme_text_slide.jpg",
         "light_theme_text_slide.jpg",
+        "soft_orange_area_chart.jpg",
+        "corporate_blue_area_chart.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -407,6 +441,8 @@ def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
         "stacked_bar_chart.jpg",
         "dark_theme_text_slide.jpg",
         "light_theme_text_slide.jpg",
+        "soft_orange_area_chart.jpg",
+        "corporate_blue_area_chart.jpg",
     ),
 )
 def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
@@ -444,6 +480,9 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "foliage_only.jpg",
         "foliage_dense.jpg",
         "city_night_windows.jpg",
+        "app_icon_grid.jpg",
+        "sticky_note_wall.jpg",
+        "traffic_light_board.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -460,6 +499,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "pie_donut_chart.jpg",
         "stacked_bar_chart.jpg",
         "dark_theme_text_slide.jpg",
+        "soft_orange_area_chart.jpg",
+        "corporate_blue_area_chart.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(
