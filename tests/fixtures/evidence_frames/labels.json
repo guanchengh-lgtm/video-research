@@ -66,5 +66,9 @@
   "orange_area_chart.jpg": {
     "expected": "keep",
     "label": "warm_orange_area_chart"
+  },
+  "compact_amber_heatmap.jpg": {
+    "expected": "keep",
+    "label": "compact_medium_sat_amber_heatmap_face_proxy"
   }
 }

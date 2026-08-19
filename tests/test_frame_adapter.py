@@ -118,6 +118,15 @@ def test_orange_area_chart_stays_eligible():
     assert features.mean_saturation > 60
 
 
+def test_compact_medium_sat_amber_heatmap_stays_eligible_despite_face_proxy():
+    features = analyze_frame(CORPUS / "compact_amber_heatmap.jpg", FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+    assert features.largest_warm_component_fraction >= 0.08
+    assert features.largest_warm_bbox_fraction <= 0.45
+
+
 @pytest.mark.parametrize(
     "filename",
     (
@@ -204,6 +213,7 @@ def test_mixed_chart_pip_is_selectable_when_it_is_the_only_evidence():
         "chart_with_webcam_pip.jpg",
         "warm_heatmap_chart.jpg",
         "orange_area_chart.jpg",
+        "compact_amber_heatmap.jpg",
         "orb_0730_face_dominant.jpg",
     ),
 )

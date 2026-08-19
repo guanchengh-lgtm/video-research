@@ -663,17 +663,15 @@ def _has_evidence_structure(
     lowsat_strong = sum(
         edge_values[index] > config.strong_edge_threshold
         and saturation_values[index] < 90
-        and not face_mask[index]
         for index in interior_indexes
     ) / len(interior_indexes)
     highsat_strong = sum(
         edge_values[index] > config.strong_edge_threshold
         and saturation_values[index] >= 90
-        and not face_mask[index]
         for index in interior_indexes
     ) / len(interior_indexes)
     structure_edges = sum(
-        edge_values[index] > config.strong_edge_threshold and not face_mask[index]
+        edge_values[index] > config.strong_edge_threshold
         for index in interior_indexes
     ) / len(interior_indexes)
 
