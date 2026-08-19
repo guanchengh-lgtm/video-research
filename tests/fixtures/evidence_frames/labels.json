@@ -338,5 +338,45 @@
   "horizontal_bullet_kpi.jpg": {
     "expected": "keep",
     "label": "horizontal_bullet_kpi_bar_chart"
+  },
+  "equalizer_spectrum_wall.jpg": {
+    "expected": "reject",
+    "label": "equalizer_spectrum_bar_wall_no_chart"
+  },
+  "unlabeled_band_wall.jpg": {
+    "expected": "reject",
+    "label": "unlabeled_color_band_wall_no_partition"
+  },
+  "face_plus_equalizer.jpg": {
+    "expected": "reject",
+    "label": "face_plus_equalizer_talking_head"
+  },
+  "kanban_card_board.jpg": {
+    "expected": "reject",
+    "label": "kanban_card_board_ui_chrome_no_chart"
+  },
+  "face_plus_kanban.jpg": {
+    "expected": "reject",
+    "label": "face_plus_kanban_talking_head"
+  },
+  "unlabeled_color_regions.jpg": {
+    "expected": "reject",
+    "label": "unlabeled_color_region_blobs_no_chart"
+  },
+  "radar_spider_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_radar_spider_chart"
+  },
+  "gauge_readout_chart.jpg": {
+    "expected": "keep",
+    "label": "labeled_gauge_readout_chart"
+  },
+  "kpi_sparkline_cards.jpg": {
+    "expected": "keep",
+    "label": "multi_card_kpi_sparkline_strip"
+  },
+  "labeled_form_ui.jpg": {
+    "expected": "keep",
+    "label": "labeled_form_settings_ui"
   }
 }

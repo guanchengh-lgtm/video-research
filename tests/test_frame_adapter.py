@@ -167,6 +167,12 @@ def test_edge_dense_non_data_static_is_rejected():
         ("face_plus_busy_calendar.jpg", "face_dominant"),
         ("face_plus_flowchart.jpg", "face_dominant"),
         ("face_plus_pcb_traces.jpg", "face_dominant"),
+        ("equalizer_spectrum_wall.jpg", "no_evidence"),
+        ("unlabeled_band_wall.jpg", "no_evidence"),
+        ("face_plus_equalizer.jpg", "face_dominant"),
+        ("kanban_card_board.jpg", "no_evidence"),
+        ("face_plus_kanban.jpg", "face_dominant"),
+        ("unlabeled_color_regions.jpg", "no_evidence"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -299,6 +305,10 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "light_dashboard_bar.jpg",
         "dark_multi_card_dashboard.jpg",
         "horizontal_bullet_kpi.jpg",
+        "radar_spider_chart.jpg",
+        "gauge_readout_chart.jpg",
+        "kpi_sparkline_cards.jpg",
+        "labeled_form_ui.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -365,6 +375,10 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "light_dashboard_bar.jpg",
         "dark_multi_card_dashboard.jpg",
         "horizontal_bullet_kpi.jpg",
+        "radar_spider_chart.jpg",
+        "gauge_readout_chart.jpg",
+        "kpi_sparkline_cards.jpg",
+        "labeled_form_ui.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -465,6 +479,8 @@ def test_face_plus_color_stalls_talking_head_is_hard_dropped():
         "face_plus_busy_calendar.jpg",
         "face_plus_flowchart.jpg",
         "face_plus_pcb_traces.jpg",
+        "face_plus_equalizer.jpg",
+        "face_plus_kanban.jpg",
     ),
 )
 def test_face_plus_dense_nongraph_backgrounds_are_hard_dropped(filename):
@@ -493,11 +509,52 @@ def test_horizontal_bullet_kpi_is_selectable_alone():
 
 
 @pytest.mark.parametrize(
+    "filename",
+    (
+        "radar_spider_chart.jpg",
+        "gauge_readout_chart.jpg",
+        "kpi_sparkline_cards.jpg",
+        "labeled_form_ui.jpg",
+    ),
+)
+def test_labeled_radial_kpi_and_form_frames_are_selectable_alone(filename):
+    selection = select_frame(
+        PresentationSegment(0, 5_000),
+        (FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / filename),),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == filename
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "equalizer_spectrum_wall.jpg",
+        "unlabeled_band_wall.jpg",
+        "kanban_card_board.jpg",
+        "unlabeled_color_regions.jpg",
+    ),
+)
+def test_furniture_free_bar_and_ui_chrome_are_rejected(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "no_evidence"
+
+
+@pytest.mark.parametrize(
     "distractor_name",
     (
         "busy_calendar_events.jpg",
         "process_flowchart.jpg",
         "pcb_trace_board.jpg",
+        "equalizer_spectrum_wall.jpg",
+        "unlabeled_band_wall.jpg",
+        "kanban_card_board.jpg",
+        "unlabeled_color_regions.jpg",
     ),
 )
 def test_dense_nongraph_stable_pair_loses_to_later_settled_chart(distractor_name):
@@ -733,6 +790,12 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "face_plus_busy_calendar.jpg",
         "face_plus_flowchart.jpg",
         "face_plus_pcb_traces.jpg",
+        "equalizer_spectrum_wall.jpg",
+        "unlabeled_band_wall.jpg",
+        "face_plus_equalizer.jpg",
+        "kanban_card_board.jpg",
+        "face_plus_kanban.jpg",
+        "unlabeled_color_regions.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -764,6 +827,10 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "light_dashboard_bar.jpg",
         "dark_multi_card_dashboard.jpg",
         "horizontal_bullet_kpi.jpg",
+        "radar_spider_chart.jpg",
+        "gauge_readout_chart.jpg",
+        "kpi_sparkline_cards.jpg",
+        "labeled_form_ui.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(

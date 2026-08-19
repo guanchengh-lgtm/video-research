@@ -833,17 +833,21 @@ def _has_evidence_structure(
         )
     )
     platform_se_hi = 0.24 if dark_theme else 0.22
+    # Platform marks need axes/labels, or stroke-platform series ink without
+    # bulk unlabeled color-panel fills (choropleth/blob maps).
     has_platform_data_marks = (
         (has_platform_furniture or has_dense_stroke_furniture)
         and has_series_marks
         and canvas_fraction >= 0.50
         and structure_edges <= platform_se_hi
+        and has_stroke_ink
+        and color_panel_mass < 0.15
+        and short_h_runs >= 80
         and (
             has_axis_lines
             or has_label_furniture
-            or color_panel_mass >= 0.05
-            or sat_fraction >= 0.25
-            or highsat_strong >= 0.015
+            or (sat_fraction >= 0.40 and highsat_strong >= 0.015)
+            or (band_count >= 12 and series_columns >= 40)
         )
     )
     has_chart_furniture = has_label_furniture or has_axis_furniture
@@ -1102,6 +1106,21 @@ def _has_evidence_structure(
         and short_v_mass >= 0.0045
         and short_h_mass >= short_v_mass * 1.2
     )
+    # Series charts need real marks — not box-border axis_lines alone.
+    has_series_data_furniture = (
+        has_chart_furniture
+        or has_platform_data_marks
+        or (
+            has_axis_lines
+            and series_columns >= 18
+            and not has_box_diagram_geometry
+            and (
+                has_stroke_ink
+                or (has_vertical_series and short_v_glyphs >= 40)
+                or (has_horizontal_series and short_h_glyphs >= 40)
+            )
+        )
+    )
     series_stroke_cap = 0.18 if dark_theme else 0.09
     series_se_hi = 0.28 if dark_theme else 0.18
     has_series_chart = (
@@ -1113,11 +1132,9 @@ def _has_evidence_structure(
         and not has_color_tile_grid
         and series_columns >= 10
         and series_regularity >= 0.40
-        and has_data_furniture
-        and (
-            (has_vertical_series and has_series_support)
-            or has_horizontal_series
-        )
+        and has_series_data_furniture
+        and has_series_support
+        and (has_vertical_series or has_horizontal_series)
     )
     # Box/whisker and sparse axis-mark charts: strong axes + mark/series ink that
     # dominates panel rules — not bare comic panels or architectural L-frames.
@@ -1157,6 +1174,20 @@ def _has_evidence_structure(
     )
     bar_stroke_cap = 0.20 if dark_theme else 0.10
     bar_se_hi = 0.30 if dark_theme else 0.20
+    # Multi-band funnel/treemap columns: organized vertical series + panels,
+    # not furniture-free equalizer/spectrum bar walls.
+    has_multiband_bar_partition = (
+        color_panel_count >= 4
+        and color_panel_mass >= 0.20
+        and 0.06 <= color_panel_bbox <= 0.35
+        and band_count >= 6
+        and has_vertical_series
+        and series_columns >= 40
+        and series_regularity >= 0.55
+        and short_v_glyphs >= 40
+        and v_glyph_fraction >= 0.50
+        and not has_color_tile_grid
+    )
     has_vertical_bar_histogram = (
         canvas_fraction >= 0.40
         and 0.04 <= structure_edges <= bar_se_hi
@@ -1170,14 +1201,9 @@ def _has_evidence_structure(
         and stroke_mass <= bar_stroke_cap
         and has_bar_bodies
         and (
-            # Axes/labels required — platform stroke density alone is bookshelves.
             has_axis_furniture
             or has_label_furniture
-            or (
-                color_panel_mass >= 0.25
-                and color_panel_count <= 8
-                and color_panel_bbox >= 0.08
-            )
+            or has_multiband_bar_partition
         )
     )
     # Horizontal bullet/KPI rows: repeated aligned bars + category/value labels.
@@ -1219,6 +1245,62 @@ def _has_evidence_structure(
         and band_count >= 6
         and not has_color_tile_grid
     )
+    # Sparse but real glyph labels (titles/readouts) that fall below slide mass.
+    has_sparse_glyph_labels = (
+        glyph_components >= 4
+        and text_components >= 4
+        and max_text_row >= 4
+        and text_mass >= 0.002
+        and has_glyph_label_structure
+    )
+    has_ui_labels = has_label_furniture or has_sparse_glyph_labels
+    # Radial/spider and gauge/readout charts: labels + stroke rings/spokes.
+    has_radial_or_gauge_chart = (
+        canvas_fraction >= 0.55
+        and 0.03 <= structure_edges <= 0.20
+        and has_ui_labels
+        and has_real_label_marks
+        and has_stroke_ink
+        and stroke_mass <= 0.16
+        and short_h_runs >= 25
+        and short_v_runs >= 25
+        and band_count >= 3
+        and series_columns >= 20
+        and not face_primary
+        and not has_color_tile_grid
+        and not has_box_diagram_geometry
+    )
+    # Multi-card KPI / sparkline strips with titles and values.
+    has_kpi_card_strip = (
+        canvas_fraction >= 0.45
+        and 0.06 <= structure_edges <= 0.30
+        and has_ui_labels
+        and has_real_label_marks
+        and text_components >= 4
+        and max_text_row >= 4
+        and long_h_runs >= 6
+        and long_v_runs >= 4
+        and series_columns >= 20
+        and stroke_mass <= 0.18
+        and not face_primary
+        and not has_color_tile_grid
+        and not has_box_diagram_geometry
+    )
+    # Labeled form/settings UI: field labels + value rows + input chrome.
+    has_labeled_form_ui = (
+        canvas_fraction >= 0.50
+        and 0.04 <= structure_edges <= 0.28
+        and has_ui_labels
+        and has_real_label_marks
+        and text_components >= 4
+        and max_text_row >= 2
+        and long_h_runs >= 3
+        and stroke_mass <= 0.18
+        and not face_primary
+        and not has_color_tile_grid
+        and not has_box_diagram_geometry
+        and not has_uniform_bar_sheet
+    )
     return (
         has_slide_text
         or has_organized_text
@@ -1232,6 +1314,9 @@ def _has_evidence_structure(
         or has_axis_mark_chart
         or has_bar_histogram
         or has_labeled_band_chart
+        or has_radial_or_gauge_chart
+        or has_kpi_card_strip
+        or has_labeled_form_ui
     )
 
 
