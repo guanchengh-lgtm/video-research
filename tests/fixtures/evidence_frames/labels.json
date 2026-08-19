@@ -310,5 +310,33 @@
   "dark_multi_card_dashboard.jpg": {
     "expected": "keep",
     "label": "dark_multi_card_axis_bar_dashboard"
+  },
+  "busy_calendar_events.jpg": {
+    "expected": "reject",
+    "label": "busy_calendar_event_chips_no_chart"
+  },
+  "process_flowchart.jpg": {
+    "expected": "reject",
+    "label": "process_flowchart_box_diagram_no_chart"
+  },
+  "pcb_trace_board.jpg": {
+    "expected": "reject",
+    "label": "pcb_trace_board_no_chart"
+  },
+  "face_plus_busy_calendar.jpg": {
+    "expected": "reject",
+    "label": "face_plus_busy_calendar_talking_head"
+  },
+  "face_plus_flowchart.jpg": {
+    "expected": "reject",
+    "label": "face_plus_flowchart_talking_head"
+  },
+  "face_plus_pcb_traces.jpg": {
+    "expected": "reject",
+    "label": "face_plus_pcb_trace_talking_head"
+  },
+  "horizontal_bullet_kpi.jpg": {
+    "expected": "keep",
+    "label": "horizontal_bullet_kpi_bar_chart"
   }
 }

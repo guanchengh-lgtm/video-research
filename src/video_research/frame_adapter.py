@@ -821,15 +821,48 @@ def _has_evidence_structure(
         and short_v_runs >= 25
         and not has_color_tile_grid
     )
+    # Dense/platform stroke density is not data furniture by itself. Require
+    # series/axis/label organization (or colorful panel marks on a series grid).
+    has_series_marks = (
+        series_columns >= 18
+        and series_regularity >= 0.40
+        and (
+            short_h_mass >= short_v_mass * 1.15
+            or short_v_mass >= short_h_mass * 1.15
+            or (series_columns >= 28 and series_regularity >= 0.55)
+        )
+    )
+    platform_se_hi = 0.24 if dark_theme else 0.22
+    has_platform_data_marks = (
+        (has_platform_furniture or has_dense_stroke_furniture)
+        and has_series_marks
+        and canvas_fraction >= 0.50
+        and structure_edges <= platform_se_hi
+        and (
+            has_axis_lines
+            or has_label_furniture
+            or color_panel_mass >= 0.05
+            or sat_fraction >= 0.25
+            or highsat_strong >= 0.015
+        )
+    )
     has_chart_furniture = has_label_furniture or has_axis_furniture
     has_data_furniture = (
         has_chart_furniture
         or has_axis_lines
-        or has_platform_furniture
-        or has_dense_stroke_furniture
+        or has_platform_data_marks
+    )
+    # Connector-heavy box diagrams / flowcharts: many long rules, bar chips only.
+    has_box_diagram_geometry = (
+        long_h_runs >= 30
+        and long_h_mass >= 0.035
+        and glyph_components == 0
+        and text_mass < 0.14
+        and short_h_glyphs < 70
     )
 
-    # Glyph/label slides — multi-glyph or varied bar lines, not stripe sheets.
+    # Glyph/label slides — multi-glyph or varied bar lines, not stripe sheets
+    # or connector-heavy flow diagrams.
     has_slide_text = (
         text_mass >= 0.02
         and text_components >= 3
@@ -842,6 +875,7 @@ def _has_evidence_structure(
         and has_glyph_label_structure
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
+        and not has_box_diagram_geometry
     )
     has_organized_text = (
         text_mass >= 0.008
@@ -857,6 +891,7 @@ def _has_evidence_structure(
         and not face_primary
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
+        and not has_box_diagram_geometry
     )
     has_content_slide = (
         text_mass >= 0.012
@@ -872,6 +907,7 @@ def _has_evidence_structure(
         and has_glyph_label_structure
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
+        and not has_box_diagram_geometry
     )
     # Tabular lattice + multi-cell glyph rows (not repetitive stripe ink).
     has_data_table = (
@@ -912,20 +948,17 @@ def _has_evidence_structure(
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
     )
-    # Bidir/color need labels/platform/dense furniture or axis marks —
-    # not bare long H/V grids / crossword lattices / colorful tile lots.
+    # Bidir/color need labels, real axes, or platform density with series marks —
+    # not bare long H/V grids / crossword lattices / dense calendars / traces.
     axis_bidir_stroke_cap = 0.18 if dark_theme else 0.10
     has_bidir_semantic_furniture = (
         has_label_furniture
         or has_label_ink
-        or has_platform_furniture
-        or has_dense_stroke_furniture
+        or has_platform_data_marks
         or (
             has_axis_furniture
             and has_stroke_ink
             and stroke_mass <= axis_bidir_stroke_cap
-            and series_columns >= 24
-            and series_regularity >= 0.30
         )
     )
     structure_hi = 0.30 if dark_theme else 0.22
@@ -973,7 +1006,7 @@ def _has_evidence_structure(
         and not face_primary
         and (
             (
-                color_panel_bbox <= 0.60
+                color_panel_bbox <= 0.65
                 and color_panel_count <= 2
                 and has_chart_furniture
             )
@@ -1124,7 +1157,7 @@ def _has_evidence_structure(
     )
     bar_stroke_cap = 0.20 if dark_theme else 0.10
     bar_se_hi = 0.30 if dark_theme else 0.20
-    has_bar_histogram = (
+    has_vertical_bar_histogram = (
         canvas_fraction >= 0.40
         and 0.04 <= structure_edges <= bar_se_hi
         and not face_primary
@@ -1147,6 +1180,32 @@ def _has_evidence_structure(
             )
         )
     )
+    # Horizontal bullet/KPI rows: repeated aligned bars + category/value labels.
+    has_horizontal_bar_chart = (
+        canvas_fraction >= 0.40
+        and 0.04 <= structure_edges <= bar_se_hi
+        and not face_primary
+        and not has_color_tile_grid
+        and band_count >= 4
+        and short_h_mass >= 0.010
+        and color_panel_count >= 3
+        and color_panel_mass >= 0.04
+        and color_panel_bbox <= 0.40
+        and stroke_mass <= bar_stroke_cap
+        and text_rows >= 3
+        and text_components >= 4
+        and (
+            has_label_furniture
+            or has_axis_lines
+            or has_axis_furniture
+        )
+        and (
+            has_glyph_label_structure
+            or (text_rows >= 5 and max_text_row >= 1 and text_mass >= 0.02)
+        )
+        and not has_box_diagram_geometry
+    )
+    has_bar_histogram = has_vertical_bar_histogram or has_horizontal_bar_chart
     # Labeled multi-band funnel/partition charts (warm fills may look face-like).
     has_labeled_band_chart = (
         canvas_fraction >= 0.35

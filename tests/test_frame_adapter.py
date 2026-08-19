@@ -161,6 +161,12 @@ def test_edge_dense_non_data_static_is_rejected():
         ("stripe_color_bands.jpg", "no_evidence"),
         ("color_stall_grid.jpg", "no_evidence"),
         ("face_plus_color_stalls.jpg", "face_dominant"),
+        ("busy_calendar_events.jpg", "no_evidence"),
+        ("process_flowchart.jpg", "no_evidence"),
+        ("pcb_trace_board.jpg", "no_evidence"),
+        ("face_plus_busy_calendar.jpg", "face_dominant"),
+        ("face_plus_flowchart.jpg", "face_dominant"),
+        ("face_plus_pcb_traces.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -292,6 +298,7 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "dark_dashboard_bar.jpg",
         "light_dashboard_bar.jpg",
         "dark_multi_card_dashboard.jpg",
+        "horizontal_bullet_kpi.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -357,6 +364,7 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "dark_dashboard_bar.jpg",
         "light_dashboard_bar.jpg",
         "dark_multi_card_dashboard.jpg",
+        "horizontal_bullet_kpi.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -449,6 +457,66 @@ def test_face_plus_color_stalls_talking_head_is_hard_dropped():
     assert not features.eligible
     assert features.rejection_reason == "face_dominant"
     assert features.compact_face_fraction >= 0.01
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "face_plus_busy_calendar.jpg",
+        "face_plus_flowchart.jpg",
+        "face_plus_pcb_traces.jpg",
+    ),
+)
+def test_face_plus_dense_nongraph_backgrounds_are_hard_dropped(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+    assert features.compact_face_fraction >= 0.01
+
+
+def test_horizontal_bullet_kpi_is_selectable_alone():
+    selection = select_frame(
+        PresentationSegment(0, 5_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "horizontal_bullet_kpi.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "horizontal_bullet_kpi.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "distractor_name",
+    (
+        "busy_calendar_events.jpg",
+        "process_flowchart.jpg",
+        "pcb_trace_board.jpg",
+    ),
+)
+def test_dense_nongraph_stable_pair_loses_to_later_settled_chart(distractor_name):
+    selection = select_frame(
+        PresentationSegment(0, 12_000),
+        (
+            FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / distractor_name),
+            FrameCandidate(FrameProbe(1_500, "post_cut"), CORPUS / distractor_name),
+            FrameCandidate(
+                FrameProbe(8_000, "post_cut"),
+                CORPUS / "gex_0028_dark_colorful_chart.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "gex_0028_dark_colorful_chart.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
 
 
 def test_warm_heatmap_chart_stays_eligible():
@@ -659,6 +727,12 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "stripe_color_bands.jpg",
         "color_stall_grid.jpg",
         "face_plus_color_stalls.jpg",
+        "busy_calendar_events.jpg",
+        "process_flowchart.jpg",
+        "pcb_trace_board.jpg",
+        "face_plus_busy_calendar.jpg",
+        "face_plus_flowchart.jpg",
+        "face_plus_pcb_traces.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -689,6 +763,7 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "dark_dashboard_bar.jpg",
         "light_dashboard_bar.jpg",
         "dark_multi_card_dashboard.jpg",
+        "horizontal_bullet_kpi.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(
