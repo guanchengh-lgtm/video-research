@@ -155,6 +155,9 @@ def test_edge_dense_non_data_static_is_rejected():
         ("blueprint_grid.jpg", "no_evidence"),
         ("crossword_grid.jpg", "no_evidence"),
         ("face_plus_comic_panels.jpg", "face_dominant"),
+        ("barcode_sheet.jpg", "no_evidence"),
+        ("face_plus_barcode.jpg", "face_dominant"),
+        ("solid_color_blocks.jpg", "no_evidence"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -215,6 +218,31 @@ def test_gex_dark_chart_with_ordinary_webcam_pip_stays_eligible():
     assert features.compact_face_fraction >= 0.01
 
 
+def test_face_plus_barcode_talking_head_is_hard_dropped():
+    features = analyze_frame(CORPUS / "face_plus_barcode.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+    assert features.compact_face_fraction >= 0.01
+
+
+def test_full_plot_stacked_area_is_selectable_alone():
+    selection = select_frame(
+        PresentationSegment(0, 5_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "stacked_area_full_plot.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "stacked_area_full_plot.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
+
+
 @pytest.mark.parametrize(
     ("filename", "reason"),
     (
@@ -257,6 +285,7 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "dense_numeric_table.jpg",
         "spreadsheet_grid.jpg",
         "funnel_chart.jpg",
+        "stacked_area_full_plot.jpg",
     ),
 )
 def test_ordinary_axis_aligned_charts_stay_eligible(filename):
@@ -275,6 +304,8 @@ def test_ordinary_axis_aligned_charts_stay_eligible(filename):
         "launchpad_with_labels.jpg",
         "titled_sticky_wall.jpg",
         "calendar_month_grid.jpg",
+        "solid_color_blocks.jpg",
+        "barcode_sheet.jpg",
     ),
 )
 def test_multicolor_tile_boards_without_chart_furniture_are_rejected(filename):
@@ -314,6 +345,7 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "dense_numeric_table.jpg",
         "spreadsheet_grid.jpg",
         "funnel_chart.jpg",
+        "stacked_area_full_plot.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -509,6 +541,7 @@ def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
         "dense_numeric_table.jpg",
         "spreadsheet_grid.jpg",
         "funnel_chart.jpg",
+        "stacked_area_full_plot.jpg",
     ),
 )
 def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
@@ -564,6 +597,9 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "blueprint_grid.jpg",
         "crossword_grid.jpg",
         "face_plus_comic_panels.jpg",
+        "barcode_sheet.jpg",
+        "face_plus_barcode.jpg",
+        "solid_color_blocks.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -590,6 +626,7 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "dense_numeric_table.jpg",
         "spreadsheet_grid.jpg",
         "funnel_chart.jpg",
+        "stacked_area_full_plot.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(

@@ -660,8 +660,26 @@ def _has_evidence_structure(
         edge_values[index] > config.strong_edge_threshold
         for index in interior_indexes
     ) / len(interior_indexes)
-    text_mass, text_components, text_rows, max_text_row = _dark_text_stats(
-        gray_values, face_mask, width, height
+    (
+        text_mass,
+        text_components,
+        text_rows,
+        max_text_row,
+        bar_width_cv,
+        glyph_components,
+    ) = _dark_text_stats(gray_values, face_mask, width, height)
+    # Equal-width solid bar stacks (barcode/stripe sheets) are not glyph text.
+    has_uniform_bar_sheet = (
+        text_rows >= 5
+        and max_text_row <= 1
+        and glyph_components == 0
+        and bar_width_cv <= 0.06
+        and text_mass >= 0.08
+    )
+    has_glyph_label_structure = (
+        glyph_components >= 1
+        or max_text_row >= 2
+        or bar_width_cv >= 0.05
     )
     # Chart/UI stroke runs ignore face_mask so corner PIP cannot erase ink.
     short_h_mass, short_h_runs, short_h_glyphs = _short_run_stats(
@@ -723,7 +741,12 @@ def _has_evidence_structure(
         and v_glyph_fraction >= 0.30
         and stroke_mass <= 0.12
     )
-    has_label_ink = text_mass >= 0.008 and has_text_organization
+    has_label_ink = (
+        text_mass >= 0.008
+        and has_text_organization
+        and has_glyph_label_structure
+        and not has_uniform_bar_sheet
+    )
     has_panel_ink = color_panel_mass >= 0.10
     has_chart_ink = has_stroke_ink or has_label_ink or has_panel_ink
     # Small equal color tiles (launchpad/sticky/icon grids) are not slides.
@@ -758,6 +781,8 @@ def _has_evidence_structure(
     )
     has_axis_furniture = (
         has_axis_lines
+        and long_h_runs >= 2
+        and long_v_runs >= 2
         and short_h_mass >= 0.010
         and short_v_mass >= 0.005
         and band_count >= 4
@@ -791,7 +816,7 @@ def _has_evidence_structure(
         or has_dense_stroke_furniture
     )
 
-    # Glyph/label slides — multi-glyph rows, not module grids or code stacks.
+    # Glyph/label slides — multi-glyph or varied bar lines, not stripe sheets.
     has_slide_text = (
         text_mass >= 0.02
         and text_components >= 3
@@ -801,6 +826,8 @@ def _has_evidence_structure(
         and canvas_fraction >= 0.40
         and 0.05 <= structure_edges <= 0.25
         and stroke_mass <= 0.18
+        and has_glyph_label_structure
+        and not has_uniform_bar_sheet
         and not has_color_tile_grid
     )
     has_organized_text = (
@@ -813,7 +840,9 @@ def _has_evidence_structure(
         and short_v_runs >= 30
         and stroke_mass <= 0.18
         and max_text_row >= 2
+        and has_glyph_label_structure
         and not face_primary
+        and not has_uniform_bar_sheet
         and not has_color_tile_grid
     )
     has_content_slide = (
@@ -827,20 +856,27 @@ def _has_evidence_structure(
         and band_count >= 8
         and max_text_row >= 3
         and stroke_mass <= 0.20
+        and has_glyph_label_structure
+        and not has_uniform_bar_sheet
         and not has_color_tile_grid
     )
-    # Tabular grid + header/body glyph rows (dense numeric tables).
+    # Tabular lattice + multi-cell glyph rows (not repetitive stripe ink).
     has_data_table = (
         text_mass >= 0.035
-        and text_components >= 8
+        and text_components >= 12
         and text_rows >= 4
-        and max_text_row >= 2
+        and max_text_row >= 3
+        and glyph_components >= 4
         and canvas_fraction >= 0.28
         and 0.08 <= structure_edges <= 0.40
         and band_count >= 4
-        and (long_h_runs >= 2 or long_v_runs >= 2 or series_columns >= 20)
+        and series_columns >= 24
+        and series_regularity >= 0.50
+        and long_h_runs >= 2
+        and (long_v_runs >= 1 or series_columns >= 40)
         and stroke_mass <= 0.22
         and not face_primary
+        and not has_uniform_bar_sheet
         and not has_color_tile_grid
     )
     # Spreadsheet/grid UI with header/cell lattice (glyphs may merge when downscaled).
@@ -850,7 +886,7 @@ def _has_evidence_structure(
         and text_mass >= 0.04
         and text_rows >= 4
         and text_components >= 8
-        and max_text_row >= 2
+        and max_text_row >= 3
         and band_count >= 6
         and series_columns >= 20
         and series_regularity >= 0.60
@@ -860,6 +896,7 @@ def _has_evidence_structure(
         and short_h_runs >= 12
         and stroke_mass <= 0.18
         and not face_primary
+        and not has_uniform_bar_sheet
         and not has_color_tile_grid
     )
     # Bidir/color need labels/platform/dense furniture or high-column axis marks —
@@ -916,10 +953,25 @@ def _has_evidence_structure(
     )
     has_soft_area = (
         color_panel_mass >= 0.12
-        and color_panel_bbox <= 0.60
-        and color_panel_count <= 2
-        and has_chart_furniture
         and not face_primary
+        and (
+            (
+                color_panel_bbox <= 0.60
+                and color_panel_count <= 2
+                and has_chart_furniture
+            )
+            or (
+                # Full-plot multi-band stacked area: horizontal bands + axes.
+                color_panel_mass >= 0.20
+                and 2 <= color_panel_count <= 8
+                and color_panel_bbox <= 0.85
+                and has_axis_lines
+                and band_count >= 4
+                and short_h_mass >= 0.012
+                and short_h_mass >= short_v_mass * 1.3
+                and not has_color_tile_grid
+            )
+        )
     )
     # Multi-block panels need labels plus real axes — not tile edges/title chips.
     has_multi_panel = (
@@ -931,7 +983,7 @@ def _has_evidence_structure(
         and has_axis_furniture
         and not face_primary
     )
-    # Partition/treemap blocks: substantial panels + dividers or labels.
+    # Partition/treemap blocks need labels/legend/axes — not bare color tiles.
     has_partition_chart = (
         canvas_fraction >= 0.20
         and 0.04 <= structure_edges <= 0.22
@@ -942,12 +994,13 @@ def _has_evidence_structure(
         and not has_color_tile_grid
         and (
             has_label_furniture
-            or text_mass >= 0.012
             or (
-                color_panel_mass >= 0.28
-                and color_panel_count >= 5
-                and band_count >= 4
+                has_text_organization
+                and max_text_row >= 2
+                and text_components >= 4
+                and has_glyph_label_structure
             )
+            or (has_axis_furniture and color_panel_count >= 4)
         )
     )
     has_color_panel = (
@@ -964,17 +1017,19 @@ def _has_evidence_structure(
     # lines (horizontal-dominant) on a regular column grid — not maps/outlines.
     sparse_color_bodies = (
         0.008 <= sat_fraction <= 0.08
-        and series_columns >= 12
-        and series_regularity >= 0.45
+        and series_columns >= 30
+        and series_regularity >= 0.55
     )
     colored_edge_series = (
         highsat_strong >= 0.012
         and short_h_glyphs >= 6
         and series_columns >= 10
     )
+    # Bar-only stripe text / tiny face panels are not series support.
+    has_series_label_support = text_mass >= 0.004 and has_glyph_label_structure
     has_series_support = (
-        text_mass >= 0.004
-        or color_panel_mass >= 0.05
+        has_series_label_support
+        or color_panel_mass >= 0.10
         or sparse_color_bodies
         or colored_edge_series
     )
@@ -1049,7 +1104,16 @@ def _has_evidence_structure(
         and band_count >= 3
         and stroke_mass <= 0.10
         and has_bar_bodies
-        and has_data_furniture
+        and (
+            has_chart_furniture
+            or has_platform_furniture
+            or has_label_furniture
+            or (
+                color_panel_mass >= 0.25
+                and color_panel_count <= 8
+                and color_panel_bbox >= 0.08
+            )
+        )
     )
     # Labeled multi-band funnel/partition charts (warm fills may look face-like).
     has_labeled_band_chart = (
@@ -1299,12 +1363,13 @@ def _column_series_stats(
 
 def _dark_text_stats(
     gray_values: list[int], face_mask: list[bool], width: int, height: int
-) -> tuple[float, int, int, int]:
+) -> tuple[float, int, int, int, float, int]:
     """Organized ink-on-canvas glyph/label stats (polarity-independent).
 
-    Returns organized mass, component count, text-row count, and the size of
-    the largest row. Dark-on-light and light-on-dark bars/glyphs both count when
-    they sit on a contrasting canvas surround. Arbitrary organic blobs do not.
+    Returns organized mass, component count, text-row count, largest row size,
+    bar-width coefficient of variation, and glyph component count. Dark-on-light
+    and light-on-dark bars/glyphs both count when they sit on a contrasting
+    canvas surround. Arbitrary organic blobs do not.
     """
 
     dark = _ink_text_stats_for_polarity(
@@ -1313,8 +1378,16 @@ def _dark_text_stats(
     light = _ink_text_stats_for_polarity(
         gray_values, face_mask, width, height, polarity="light"
     )
-    # Prefer the polarity with more organized structure; ties go to greater mass.
-    if light[2] > dark[2] or (light[2] == dark[2] and light[0] > dark[0]):
+
+    def _text_quality(
+        stats: tuple[float, int, int, int, float, int],
+    ) -> tuple[int, int, int, float]:
+        mass, _components, rows, max_row, bar_cv, glyphs = stats
+        structured = int(glyphs >= 1 or max_row >= 2 or bar_cv >= 0.05)
+        return (structured, rows, max_row, mass)
+
+    # Prefer glyph/varied-bar structure over uniform stripe sheets, then rows/mass.
+    if _text_quality(light) > _text_quality(dark):
         return light
     return dark
 
@@ -1326,7 +1399,7 @@ def _ink_text_stats_for_polarity(
     height: int,
     *,
     polarity: str,
-) -> tuple[float, int, int, int]:
+) -> tuple[float, int, int, int, float, int]:
     """Organized glyph/label stats for one ink polarity."""
 
     frame_area = width * height
@@ -1406,20 +1479,24 @@ def _ink_text_stats_for_polarity(
                 "cx": sum(xs) / len(xs),
                 "cy": sum(ys) / len(ys),
                 "bh": bbox_height,
+                "bw": bbox_width,
                 "min_x": min_x,
                 "max_x": max_x,
                 "min_y": min_y,
                 "max_y": max_y,
                 "bar": is_bar,
+                "glyph": is_glyph and not is_bar,
             }
         )
 
     if not components:
-        return 0.0, 0, 0, 0
+        return 0.0, 0, 0, 0, 0.0, 0
 
     used: set[int] = set()
     organized_pixels = 0
     organized_components = 0
+    organized_glyphs = 0
+    bar_widths: list[float] = []
     rows = 0
     max_row = 0
     for index, component in enumerate(components):
@@ -1465,10 +1542,24 @@ def _ink_text_stats_for_polarity(
             rows += 1
             organized_pixels += sum(int(item["n"]) for item in row_components)
             organized_components += len(row_components)
+            organized_glyphs += sum(1 for item in row_components if item["glyph"])
+            bar_widths.extend(
+                float(item["bw"]) for item in row_components if item["bar"]
+            )
             max_row = max(max_row, len(row_components))
+    if len(bar_widths) >= 2:
+        mean_width = sum(bar_widths) / len(bar_widths)
+        variance = sum((width - mean_width) ** 2 for width in bar_widths) / len(
+            bar_widths
+        )
+        bar_width_cv = (variance**0.5) / mean_width if mean_width > 0 else 0.0
+    else:
+        bar_width_cv = 0.0
     return (
         organized_pixels / frame_area,
         organized_components,
         rows,
         max_row,
+        bar_width_cv,
+        organized_glyphs,
     )

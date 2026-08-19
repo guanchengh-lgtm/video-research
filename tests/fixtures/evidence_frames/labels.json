@@ -270,5 +270,21 @@
   "funnel_chart.jpg": {
     "expected": "keep",
     "label": "labeled_multi_band_funnel_chart"
+  },
+  "barcode_sheet.jpg": {
+    "expected": "reject",
+    "label": "barcode_stripe_sheet_no_table"
+  },
+  "face_plus_barcode.jpg": {
+    "expected": "reject",
+    "label": "face_plus_barcode_talking_head"
+  },
+  "solid_color_blocks.jpg": {
+    "expected": "reject",
+    "label": "furniture_free_color_blocks_no_partition"
+  },
+  "stacked_area_full_plot.jpg": {
+    "expected": "keep",
+    "label": "full_plot_multiband_stacked_area"
   }
 }
