@@ -72,10 +72,11 @@ def test_interval_pipeline_records_provenance_and_unique_candidates(
     )
 
     assert manifest["manifest_version"] == 2
-    assert manifest["config"]["version"] == "evidence-frame-v3"
+    assert manifest["config"]["version"] == "evidence-frame-v4"
     assert len(manifest["segments"]) == 3
     assert manifest["frames"]
     assert len(extracted_paths) == len(set(extracted_paths))
+    manifest_dir = tmp_path / "frames"
     for frame in manifest["frames"]:
         assert isinstance(frame["boundary_ms"], int)
         assert isinstance(frame["timestamp_ms"], int)
@@ -83,6 +84,43 @@ def test_interval_pipeline_records_provenance_and_unique_candidates(
         assert frame["settle_offset_ms"] == frame["timestamp_ms"] - frame["boundary_ms"]
         assert frame["features"]
         assert frame["selection_reason"]
+        resolved = (manifest_dir / frame["path"]).resolve()
+        assert resolved.is_file()
+        assert resolved.parent == manifest_dir.resolve()
+
+
+@pytest.mark.parametrize("out_name", ("frames", "custom_out"))
+def test_manifest_frame_paths_resolve_relative_to_manifest(
+    extractor, monkeypatch, tmp_path, out_name
+):
+    _stub_video_pipeline(
+        extractor,
+        monkeypatch,
+        duration_ms=4_000,
+        cuts_ms=[1_000],
+        extracted_paths=[],
+    )
+    out_dir = tmp_path / out_name
+
+    manifest = extractor.extract_evidence_frames(
+        "https://youtu.be/QmPUp9ISuDw",
+        out_dir,
+        work_root=tmp_path / "work",
+    )
+
+    manifest_path = out_dir / "manifest.json"
+    assert manifest_path.is_file()
+    assert manifest["frames"]
+    for frame in manifest["frames"]:
+        frame_path = (manifest_path.parent / frame["path"]).resolve()
+        assert frame_path.is_file()
+        assert frame_path.parent == out_dir.resolve()
+        assert not str(frame["path"]).startswith("frames/")
+    for segment in manifest["segments"]:
+        selected_path = segment.get("selected_path")
+        if selected_path is None:
+            continue
+        assert (manifest_path.parent / selected_path).resolve().is_file()
 
 
 def test_no_scene_changes_still_probe_later_material(extractor, monkeypatch, tmp_path):

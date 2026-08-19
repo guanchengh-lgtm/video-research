@@ -70,5 +70,17 @@
   "compact_amber_heatmap.jpg": {
     "expected": "keep",
     "label": "compact_medium_sat_amber_heatmap_face_proxy"
+  },
+  "blinds_talking_head.jpg": {
+    "expected": "reject",
+    "label": "blinds_structured_bg_talking_head"
+  },
+  "brick_talking_head.jpg": {
+    "expected": "reject",
+    "label": "brick_structured_bg_talking_head"
+  },
+  "edge_dense_static.jpg": {
+    "expected": "reject",
+    "label": "edge_dense_non_data_static"
   }
 }

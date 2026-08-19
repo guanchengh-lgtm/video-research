@@ -220,10 +220,12 @@ def extract_evidence_frames(
         selection_record = selection.manifest()
         if selection.selected is not None:
             destination = _copy_selected(out_dir, selection.selected.path, selection.selected.probe)
+            # Paths are relative to manifest.json (written beside the JPEG in out_dir).
+            relative_path = destination.name
             selected_record = selection.selected.manifest(segment)
             selected_record.update(
                 {
-                    "path": f"frames/{destination.name}",
+                    "path": relative_path,
                     "filename": destination.name,
                     "timestamp_s": selection.selected.probe.timestamp_ms / 1_000,
                     "mmss": fmt_mmss(selection.selected.probe.timestamp_ms),
@@ -233,7 +235,7 @@ def extract_evidence_frames(
                 }
             )
             frame_records.append(selected_record)
-            selection_record["selected_path"] = f"frames/{destination.name}"
+            selection_record["selected_path"] = relative_path
         segment_records.append(selection_record)
 
     manifest: dict[str, object] = {

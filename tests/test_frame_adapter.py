@@ -102,6 +102,27 @@ def test_office_wall_clutter_without_data_is_rejected():
     assert features.rejection_reason == "no_evidence"
 
 
+def test_blinds_talking_head_is_hard_dropped():
+    features = analyze_frame(CORPUS / "blinds_talking_head.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+
+
+def test_brick_talking_head_is_hard_dropped():
+    features = analyze_frame(CORPUS / "brick_talking_head.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+
+
+def test_edge_dense_non_data_static_is_rejected():
+    features = analyze_frame(CORPUS / "edge_dense_static.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "no_evidence"
+
+
 def test_warm_heatmap_chart_stays_eligible():
     features = analyze_frame(CORPUS / "warm_heatmap_chart.jpg", FrameSelectionConfig())
 
@@ -232,6 +253,33 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
 
     assert selection.selected is not None
     assert selection.selected.path.name == evidence_name
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "distractor_name",
+    (
+        "blinds_talking_head.jpg",
+        "brick_talking_head.jpg",
+        "edge_dense_static.jpg",
+    ),
+)
+def test_structured_background_non_data_loses_to_settled_chart(distractor_name):
+    segment = PresentationSegment(0, 10_000)
+    selection = select_frame(
+        segment,
+        (
+            FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / distractor_name),
+            FrameCandidate(
+                FrameProbe(2_000, "post_cut"),
+                CORPUS / "gex_0028_dark_colorful_chart.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "gex_0028_dark_colorful_chart.jpg"
     assert selection.observation is VisualObservation.OBSERVED
 
 

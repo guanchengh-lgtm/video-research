@@ -24,7 +24,7 @@ from .timeline import SourceSpan, SpanKind, TimeInterval, VisualObservation
 class FrameSelectionConfig:
     """Versioned, immutable frame-selection policy."""
 
-    version: str = "evidence-frame-v3"
+    version: str = "evidence-frame-v4"
     probe_offsets_ms: tuple[int, ...] = (500, 1_000, 2_000)
     next_cut_guard_ms: int = 100
     periodic_interval_ms: int = 15_000
@@ -200,7 +200,7 @@ class FrameSelection:
     selected: CandidateEvaluation | None
     evaluations: tuple[CandidateEvaluation, ...] = field(default_factory=tuple)
     reason: str = ""
-    config_version: str = "evidence-frame-v3"
+    config_version: str = "evidence-frame-v4"
 
     @property
     def observation(self) -> VisualObservation:
@@ -619,12 +619,14 @@ def _has_evidence_structure(
     width: int,
     config: FrameSelectionConfig,
 ) -> bool:
-    """True when non-face pixels look like a chart, slide, numbers, or labeled UI.
+    """True when pixels show data-bearing chart/slide/text/UI organization.
 
-    Empty canvas alone is not evidence. Positive text/chart/UI structure is required.
+    Empty canvas and generic geometry (blinds, brick, panel, static) are not
+    evidence. Positive text/chart/labeled-UI structure is required.
     """
 
     frame_area = len(gray_values)
+    height = frame_area // width
     canvas_pixels = sum(
         _is_canvas_pixel(
             index,
@@ -639,7 +641,6 @@ def _has_evidence_structure(
     canvas_fraction = canvas_pixels / frame_area
 
     text_on_canvas = 0
-    height = frame_area // width
     for y in range(1, height - 1):
         row = y * width
         for x in range(1, width - 1):
@@ -675,15 +676,204 @@ def _has_evidence_structure(
         for index in interior_indexes
     ) / len(interior_indexes)
 
-    return (
-        (
-            canvas_fraction >= config.evidence_canvas_with_text_fraction
-            and text_fraction >= config.evidence_text_on_canvas_fraction
+    vertical_edges, horizontal_run_mass, vertical_run_mass = _axis_structure(
+        gray_values, edge_values, width, height, config.strong_edge_threshold
+    )
+    row_period = _row_periodicity(edge_values, width, height, config.strong_edge_threshold)
+    text_mass = _dark_text_mass(gray_values, face_mask, width, height)
+
+    has_text_slide = (
+        canvas_fraction >= config.evidence_canvas_with_text_fraction
+        and text_fraction >= config.evidence_text_on_canvas_fraction
+    )
+    has_canvas_structure = (
+        canvas_fraction >= config.evidence_canvas_with_structure_fraction
+        and structure_edges >= config.evidence_structure_edge_fraction
+    )
+    has_color_chart = (
+        highsat_strong >= config.evidence_highsat_strong_edge_fraction
+        and canvas_fraction >= 0.20
+        and structure_edges >= config.evidence_structure_edge_fraction
+    )
+    has_organized_lowsat = (
+        lowsat_strong >= config.evidence_lowsat_strong_edge_fraction
+        and canvas_fraction >= 0.18
+        and (
+            vertical_edges >= 0.025
+            or text_mass >= 0.015
+            or vertical_run_mass >= 0.01
         )
-        or lowsat_strong >= config.evidence_lowsat_strong_edge_fraction
-        or highsat_strong >= config.evidence_highsat_strong_edge_fraction
-        or (
-            canvas_fraction >= config.evidence_canvas_with_structure_fraction
-            and structure_edges >= config.evidence_structure_edge_fraction
+        and row_period < 0.15
+    )
+    has_grid = (
+        horizontal_run_mass >= 0.05
+        and vertical_run_mass >= 0.02
+        and min(horizontal_run_mass, vertical_run_mass)
+        / max(horizontal_run_mass, vertical_run_mass)
+        > 0.08
+        and structure_edges >= 0.10
+    )
+    if not (
+        has_text_slide
+        or has_canvas_structure
+        or has_color_chart
+        or has_organized_lowsat
+        or has_grid
+    ):
+        return False
+
+    blinds_texture = (
+        row_period >= 0.10
+        and text_mass < 0.02
+        and highsat_strong < 0.06
+        and vertical_run_mass < 0.015
+        and (
+            vertical_edges < 0.035
+            or horizontal_run_mass >= 0.15
+            or row_period >= 0.18
         )
     )
+    brick_texture = (
+        highsat_strong >= 0.15
+        and canvas_fraction < 0.12
+        and text_fraction < 0.02
+    )
+    noise_texture = (
+        structure_edges >= 0.30
+        and (horizontal_run_mass + vertical_run_mass) < 0.06
+        and text_mass < 0.05
+    )
+    return not (blinds_texture or brick_texture or noise_texture)
+
+
+def _axis_structure(
+    gray_values: list[int],
+    edge_values: list[int],
+    width: int,
+    height: int,
+    strong_edge_threshold: int,
+) -> tuple[float, float, float]:
+    """Vertical gradient mass plus long horizontal/vertical strong-edge runs."""
+
+    frame_area = width * height
+    vertical_edges = 0
+    gradient_threshold = 30
+    for y in range(1, height - 1):
+        row = y * width
+        for x in range(1, width - 1):
+            index = row + x
+            horizontal_grad = abs(gray_values[index + 1] - gray_values[index - 1])
+            vertical_grad = abs(gray_values[index + width] - gray_values[index - width])
+            if horizontal_grad >= gradient_threshold and vertical_grad < gradient_threshold * 0.6:
+                vertical_edges += 1
+    horizontal_run_mass = _long_run_mass(
+        edge_values, width, height, strong_edge_threshold, horizontal=True
+    )
+    vertical_run_mass = _long_run_mass(
+        edge_values, width, height, strong_edge_threshold, horizontal=False
+    )
+    return (
+        vertical_edges / frame_area,
+        horizontal_run_mass,
+        vertical_run_mass,
+    )
+
+
+def _long_run_mass(
+    edge_values: list[int],
+    width: int,
+    height: int,
+    threshold: int,
+    *,
+    horizontal: bool,
+    min_length: int = 6,
+) -> float:
+    total = 0
+    frame_area = width * height
+    if horizontal:
+        for y in range(1, height - 1):
+            run = 0
+            row = y * width
+            for x in range(1, width - 1):
+                if edge_values[row + x] > threshold:
+                    run += 1
+                else:
+                    if run >= min_length:
+                        total += run
+                    run = 0
+            if run >= min_length:
+                total += run
+    else:
+        for x in range(1, width - 1):
+            run = 0
+            for y in range(1, height - 1):
+                if edge_values[y * width + x] > threshold:
+                    run += 1
+                else:
+                    if run >= min_length:
+                        total += run
+                    run = 0
+            if run >= min_length:
+                total += run
+    return total / frame_area
+
+
+def _row_periodicity(
+    edge_values: list[int], width: int, height: int, threshold: int
+) -> float:
+    """Score repeated parallel horizontal bands (blinds / louver texture)."""
+
+    dense_rows = []
+    for y in range(height):
+        row = y * width
+        dense_rows.append(
+            sum(edge_values[row + x] > threshold for x in range(width)) / width > 0.25
+        )
+    gaps: list[int] = []
+    index = 0
+    while index < height:
+        if not dense_rows[index]:
+            index += 1
+            continue
+        streak_end = index
+        while streak_end < height and dense_rows[streak_end]:
+            streak_end += 1
+        gap_end = streak_end
+        while gap_end < height and not dense_rows[gap_end]:
+            gap_end += 1
+        if streak_end > index and gap_end > streak_end:
+            gaps.append(gap_end - streak_end)
+        index = max(streak_end, index + 1)
+    if len(gaps) < 4:
+        return 0.0
+    mean_gap = sum(gaps) / len(gaps)
+    if mean_gap <= 0:
+        return 0.0
+    variance = sum((gap - mean_gap) ** 2 for gap in gaps) / len(gaps)
+    coefficient = (variance ** 0.5) / mean_gap
+    return (len(gaps) / height) * (1.0 / (1.0 + coefficient))
+
+
+def _dark_text_mass(
+    gray_values: list[int], face_mask: list[bool], width: int, height: int
+) -> float:
+    """Mass of compact dark components that look like glyphs, not hairlines."""
+
+    frame_area = width * height
+    dark_mask = tuple(
+        (not face_mask[index]) and gray_values[index] < 100
+        for index in range(frame_area)
+    )
+    text_pixels = 0
+    for component in _connected_components(dark_mask, width, height):
+        if len(component) < 5 or len(component) > frame_area * 0.15:
+            continue
+        xs = [index % width for index in component]
+        ys = [index // width for index in component]
+        bbox_width = max(xs) - min(xs) + 1
+        bbox_height = max(ys) - min(ys) + 1
+        if bbox_width >= width * 0.7 and bbox_height <= 3:
+            continue
+        if bbox_height >= 3 and bbox_width >= 3:
+            text_pixels += len(component)
+    return text_pixels / frame_area
