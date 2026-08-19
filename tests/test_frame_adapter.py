@@ -188,6 +188,8 @@ def test_edge_dense_non_data_static_is_rejected():
         ("face_plus_er_diagram.jpg", "face_dominant"),
         ("unlabeled_colorbar_schedule_board.jpg", "no_evidence"),
         ("face_plus_colorbar_schedule_board.jpg", "face_dominant"),
+        ("arial_sprint_kanban.jpg", "no_evidence"),
+        ("face_plus_arial_sprint_kanban.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -394,6 +396,8 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "gauge_readout_chart.jpg",
         "kpi_sparkline_cards.jpg",
         "labeled_form_ui.jpg",
+        "real_font_agenda_slide.jpg",
+        "real_font_axis_histogram.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -577,6 +581,7 @@ def test_labeled_radial_kpi_and_form_frames_are_selectable_alone(filename):
         "kanban_card_board.jpg",
         "dense_kanban_board.jpg",
         "labeled_kanban_board.jpg",
+        "arial_sprint_kanban.jpg",
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
         "appliance_keypad_grid.jpg",
@@ -660,6 +665,112 @@ def test_unlabeled_colorbar_stable_pair_loses_to_later_gex():
     assert selection.observation is VisualObservation.OBSERVED
 
 
+def test_arial_sprint_kanban_is_not_chart_evidence():
+    features = analyze_frame(CORPUS / "arial_sprint_kanban.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "no_evidence"
+
+
+def test_face_plus_arial_sprint_kanban_is_hard_dropped():
+    features = analyze_frame(
+        CORPUS / "face_plus_arial_sprint_kanban.jpg", FrameSelectionConfig()
+    )
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+    assert features.compact_face_fraction >= 0.01
+
+
+@pytest.mark.parametrize(
+    "evidence_name",
+    (
+        "gex_0028_dark_colorful_chart.jpg",
+        "beige_text_slide.jpg",
+        "chart_with_webcam_pip.jpg",
+        "waterfall_bridge_chart.jpg",
+    ),
+)
+def test_arial_sprint_kanban_loses_to_settled_evidence(evidence_name):
+    selection = select_frame(
+        PresentationSegment(0, 10_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "arial_sprint_kanban.jpg",
+            ),
+            FrameCandidate(FrameProbe(2_000, "post_cut"), CORPUS / evidence_name),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == evidence_name
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_arial_sprint_kanban_stable_pair_loses_to_later_gex():
+    selection = select_frame(
+        PresentationSegment(0, 12_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "arial_sprint_kanban.jpg",
+            ),
+            FrameCandidate(
+                FrameProbe(1_500, "post_cut"),
+                CORPUS / "arial_sprint_kanban.jpg",
+            ),
+            FrameCandidate(
+                FrameProbe(8_000, "post_cut"),
+                CORPUS / "gex_0028_dark_colorful_chart.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "gex_0028_dark_colorful_chart.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_real_font_agenda_slide_stays_eligible():
+    features = analyze_frame(
+        CORPUS / "real_font_agenda_slide.jpg", FrameSelectionConfig()
+    )
+
+    assert features.eligible
+    assert features.rejection_reason is None
+
+
+def test_real_font_axis_histogram_stays_eligible():
+    features = analyze_frame(
+        CORPUS / "real_font_axis_histogram.jpg", FrameSelectionConfig()
+    )
+
+    assert features.eligible
+    assert features.rejection_reason is None
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "real_font_agenda_slide.jpg",
+        "real_font_axis_histogram.jpg",
+    ),
+)
+def test_real_font_slide_and_histogram_are_selectable_alone(filename):
+    selection = select_frame(
+        PresentationSegment(0, 5_000),
+        (FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / filename),),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == filename
+    assert selection.observation is VisualObservation.OBSERVED
+
+
 @pytest.mark.parametrize(
     "filename",
     (
@@ -687,6 +798,7 @@ def test_node_box_connector_diagrams_are_not_chart_evidence(filename):
         "kanban_card_board.jpg",
         "dense_kanban_board.jpg",
         "labeled_kanban_board.jpg",
+        "arial_sprint_kanban.jpg",
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
         "appliance_keypad_grid.jpg",
@@ -939,6 +1051,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "dense_kanban_board.jpg",
         "labeled_kanban_board.jpg",
         "face_plus_kanban.jpg",
+        "arial_sprint_kanban.jpg",
+        "face_plus_arial_sprint_kanban.jpg",
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
         "appliance_keypad_grid.jpg",
@@ -990,6 +1104,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "labeled_form_ui.jpg",
         "waterfall_bridge_chart.jpg",
         "gantt_timeline_chart.jpg",
+        "real_font_agenda_slide.jpg",
+        "real_font_axis_histogram.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(

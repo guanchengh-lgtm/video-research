@@ -446,5 +446,21 @@
   "face_plus_colorbar_schedule_board.jpg": {
     "expected": "reject",
     "label": "face_plus_colorbar_schedule_board_talking_head"
+  },
+  "arial_sprint_kanban.jpg": {
+    "expected": "reject",
+    "label": "arial_sprint_kanban_card_chrome_no_chart"
+  },
+  "face_plus_arial_sprint_kanban.jpg": {
+    "expected": "reject",
+    "label": "face_plus_arial_sprint_kanban_talking_head"
+  },
+  "real_font_agenda_slide.jpg": {
+    "expected": "keep",
+    "label": "real_font_agenda_bullet_slide"
+  },
+  "real_font_axis_histogram.jpg": {
+    "expected": "keep",
+    "label": "real_font_axis_bar_histogram"
   }
 }

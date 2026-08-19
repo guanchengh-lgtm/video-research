@@ -851,7 +851,9 @@ def _has_evidence_structure(
         and color_panel_mass < 0.10
     )
     # Platform marks need axes/labels, or stroke-platform series ink without
-    # bulk unlabeled color-panel fills (choropleth/blob maps).
+    # bulk unlabeled color-panel fills (choropleth/blob maps). Bare low-sat
+    # axis geometry (card boards) is not enough — need strong axes, glyphs,
+    # or high-sat platform ink (GEX).
     has_platform_data_marks = (
         (has_platform_furniture or has_dense_stroke_furniture)
         and has_series_marks
@@ -869,11 +871,14 @@ def _has_evidence_structure(
                 and (
                     has_strong_axes
                     or has_real_glyphs
-                    or sat_fraction < 0.02
                     or highsat_strong >= 0.015
                 )
             )
-            or (band_count >= 12 and series_columns >= 40)
+            or (
+                band_count >= 12
+                and series_columns >= 40
+                and (has_real_glyphs or sat_fraction >= 0.40 or highsat_strong >= 0.015)
+            )
         )
     )
     has_chart_furniture = has_label_furniture or has_axis_furniture
@@ -884,7 +889,8 @@ def _has_evidence_structure(
     )
     # Node-box + connector diagrams (org/flow/ER) and kanban/card boards:
     # long box rules and/or multi-row bar-chip labels inside frames. Not pure
-    # axis charts (no bar-chip text).
+    # axis charts (no bar-chip text). Multi-column card chrome with text_mass=0
+    # is blocked via platform/bidir furniture requiring real data marks.
     has_card_board_geometry = (
         not has_real_glyphs
         and glyph_components == 0
@@ -928,6 +934,26 @@ def _has_evidence_structure(
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
         and not has_box_diagram_geometry
+    )
+    # Real-font agenda/bullet slides: multi-row horizontal stroke bands after
+    # downscale lose glyph mass but keep aligned line geometry.
+    has_stroke_slide = (
+        canvas_fraction >= 0.55
+        and 0.025 <= structure_edges <= 0.16
+        and stroke_mass <= 0.12
+        and short_h_runs >= 30
+        and short_h_mass >= 0.012
+        and short_h_mass >= short_v_mass * 1.4
+        and band_count >= 4
+        and series_regularity >= 0.45
+        and series_columns >= 12
+        and color_panel_mass < 0.12
+        and sat_fraction < 0.20
+        and not face_primary
+        and not has_uniform_bar_sheet
+        and not has_color_tile_grid
+        and not has_box_diagram_geometry
+        and not has_card_board_geometry
     )
     has_organized_text = (
         text_mass >= 0.008
@@ -1003,12 +1029,15 @@ def _has_evidence_structure(
     # Bidir/color need labels, series/legend marks, platform data, or axes with
     # real data marks — not bare long H/V panel/keypad geometry alone.
     axis_bidir_stroke_cap = 0.18 if dark_theme else 0.10
+    # Series-column regularity alone is card-grid chrome when almost all short
+    # mass is horizontal box rules; require some vertical mark mass too.
     has_axis_data_marks = (
         text_mass >= 0.008
         or (
             has_series_marks
             and series_columns >= 32
             and series_regularity >= 0.50
+            and short_v_mass >= short_h_mass * 0.40
         )
         or (
             color_panel_mass >= 0.08
@@ -1321,6 +1350,21 @@ def _has_evidence_structure(
             )
         )
     )
+    # Axis-bearing single-series bars: L/frame axes + regular color columns even
+    # when real-font tick labels vanish after downscale.
+    has_axis_color_bars = (
+        has_axis_lines
+        and has_bar_bodies
+        and color_panel_count >= 3
+        and color_panel_mass >= 0.04
+        and series_columns >= 12
+        and series_regularity >= 0.30
+        and short_v_mass >= 0.008
+        and short_v_runs >= 12
+        and long_v_runs >= 2
+        and long_h_mass >= 0.005
+        and not has_card_board_geometry
+    )
     has_vertical_bar_histogram = (
         canvas_fraction >= 0.40
         and 0.04 <= structure_edges <= bar_se_hi
@@ -1338,6 +1382,7 @@ def _has_evidence_structure(
             has_label_furniture
             or has_multiband_bar_partition
             or has_floating_bar_bridge
+            or has_axis_color_bars
             or (
                 has_axis_furniture
                 and (
@@ -1481,6 +1526,7 @@ def _has_evidence_structure(
     )
     return (
         has_slide_text
+        or has_stroke_slide
         or has_organized_text
         or has_content_slide
         or has_data_table
