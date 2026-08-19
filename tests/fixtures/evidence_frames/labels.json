@@ -106,5 +106,17 @@
   "empty_whiteboard.jpg": {
     "expected": "reject",
     "label": "empty_whiteboard_border_only"
+  },
+  "empty_ceiling_grid.jpg": {
+    "expected": "reject",
+    "label": "empty_architectural_ceiling_grid"
+  },
+  "face_plus_ceiling_grid.jpg": {
+    "expected": "reject",
+    "label": "face_plus_empty_grid_talking_head"
+  },
+  "gex_dark_chart_with_webcam_pip.jpg": {
+    "expected": "keep",
+    "label": "gex_dark_chart_ordinary_webcam_pip"
   }
 }

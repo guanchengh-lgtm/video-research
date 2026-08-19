@@ -336,6 +336,7 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
         interior_indexes,
         width,
         face_primary,
+        has_face,
         config,
     )
     blank_or_transition = (
@@ -621,12 +622,14 @@ def _has_evidence_structure(
     interior_indexes: list[int],
     width: int,
     face_primary: bool,
+    has_face: bool,
     config: FrameSelectionConfig,
 ) -> bool:
     """True when pixels show data-bearing chart/slide/text/UI organization.
 
-    Generic geometry (blinds, bookshelves, panels, empty borders, static) is not
-    evidence. Positive glyph, label, or chart-ink organization is required.
+    Generic geometry (blinds, bookshelves, panels, empty borders, static, bare
+    grids) is not evidence. Positive glyph, label, or chart-ink organization is
+    required. face_mask may suppress canvas/text only — never chart stroke runs.
     """
 
     frame_area = len(gray_values)
@@ -654,17 +657,16 @@ def _has_evidence_structure(
     text_mass, text_components = _dark_text_stats(
         gray_values, face_mask, width, height
     )
-    short_h_mass, short_h_runs = _short_run_stats(
+    # Chart/UI stroke runs ignore face_mask so corner PIP cannot erase ink.
+    short_h_mass, short_h_runs, short_h_glyphs = _short_run_stats(
         edge_values,
-        face_mask,
         width,
         height,
         config.strong_edge_threshold,
         horizontal=True,
     )
-    short_v_mass, short_v_runs = _short_run_stats(
+    short_v_mass, short_v_runs, short_v_glyphs = _short_run_stats(
         edge_values,
-        face_mask,
         width,
         height,
         config.strong_edge_threshold,
@@ -675,6 +677,19 @@ def _has_evidence_structure(
     )
     color_panel_mass, color_panel_bbox = _color_panel_stats(
         saturation_values, gray_values, width, height
+    )
+    h_glyph_fraction = (short_h_glyphs / short_h_runs) if short_h_runs else 0.0
+    v_glyph_fraction = (short_v_glyphs / short_v_runs) if short_v_runs else 0.0
+    # Bare periodic grids are mostly medium-length runs; charts add short ink.
+    has_chart_ink = (
+        (
+            short_h_glyphs >= 18
+            and short_v_glyphs >= 12
+            and h_glyph_fraction >= 0.30
+            and v_glyph_fraction >= 0.30
+        )
+        or text_mass >= 0.008
+        or highsat_strong >= 0.03
     )
 
     has_slide_text = (
@@ -710,6 +725,7 @@ def _has_evidence_structure(
         and short_h_mass >= 0.02
         and short_v_mass >= 0.008
         and not face_primary
+        and has_chart_ink
     )
     has_color_chart = (
         highsat_strong >= 0.04
@@ -719,6 +735,8 @@ def _has_evidence_structure(
         and short_v_runs >= 25
         and band_count >= 5
         and not face_primary
+        and has_chart_ink
+        and (not has_face or color_panel_mass >= 0.10 or text_mass >= 0.008)
     )
     has_color_panel = (
         highsat_strong >= 0.08
@@ -739,7 +757,6 @@ def _has_evidence_structure(
 
 def _short_run_stats(
     edge_values: list[int],
-    face_mask: list[bool],
     width: int,
     height: int,
     threshold: int,
@@ -747,11 +764,18 @@ def _short_run_stats(
     horizontal: bool,
     min_length: int = 3,
     max_length: int = 22,
-) -> tuple[float, int]:
-    """Mass and count of short interior edge runs (ticks, glyphs, UI strokes)."""
+    glyph_max_length: int = 8,
+) -> tuple[float, int, int]:
+    """Mass, count, and glyph-length count of short interior edge runs.
+
+    Glyph-length runs (ticks, labels, UI strokes) are counted separately from
+    medium grid-line runs so bare architectural grids do not count as charts.
+    Face masks are intentionally not applied: chart ink under a PIP must remain.
+    """
 
     total = 0
     runs = 0
+    glyphs = 0
     frame_area = width * height
     if horizontal:
         for y in range(3, height - 3):
@@ -759,32 +783,40 @@ def _short_run_stats(
             row = y * width
             for x in range(3, width - 3):
                 index = row + x
-                if (not face_mask[index]) and edge_values[index] > threshold:
+                if edge_values[index] > threshold:
                     run += 1
                 else:
                     if min_length <= run <= max_length:
                         total += run
                         runs += 1
+                        if run <= glyph_max_length:
+                            glyphs += 1
                     run = 0
             if min_length <= run <= max_length:
                 total += run
                 runs += 1
+                if run <= glyph_max_length:
+                    glyphs += 1
     else:
         for x in range(3, width - 3):
             run = 0
             for y in range(3, height - 3):
                 index = y * width + x
-                if (not face_mask[index]) and edge_values[index] > threshold:
+                if edge_values[index] > threshold:
                     run += 1
                 else:
                     if min_length <= run <= max_length:
                         total += run
                         runs += 1
+                        if run <= glyph_max_length:
+                            glyphs += 1
                     run = 0
             if min_length <= run <= max_length:
                 total += run
                 runs += 1
-    return total / frame_area, runs
+                if run <= glyph_max_length:
+                    glyphs += 1
+    return total / frame_area, runs, glyphs
 
 
 def _structured_band_count(

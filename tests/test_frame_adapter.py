@@ -132,6 +132,8 @@ def test_edge_dense_non_data_static_is_rejected():
         ("vertical_blinds_talking_head.jpg", "face_dominant"),
         ("office_panel_talking_head.jpg", "face_dominant"),
         ("empty_whiteboard.jpg", "no_evidence"),
+        ("empty_ceiling_grid.jpg", "no_evidence"),
+        ("face_plus_ceiling_grid.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -139,6 +141,33 @@ def test_structured_non_data_backgrounds_are_rejected(filename, reason):
 
     assert not features.eligible
     assert features.rejection_reason == reason
+
+
+def test_empty_architectural_grid_is_not_chart_evidence():
+    features = analyze_frame(CORPUS / "empty_ceiling_grid.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "no_evidence"
+
+
+def test_face_plus_empty_grid_talking_head_is_hard_dropped():
+    features = analyze_frame(
+        CORPUS / "face_plus_ceiling_grid.jpg", FrameSelectionConfig()
+    )
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+    assert features.largest_warm_component_fraction >= 0.01
+
+
+def test_gex_dark_chart_with_ordinary_webcam_pip_stays_eligible():
+    features = analyze_frame(
+        CORPUS / "gex_dark_chart_with_webcam_pip.jpg", FrameSelectionConfig()
+    )
+
+    assert features.eligible
+    assert features.rejection_reason is None
+    assert features.compact_face_fraction >= 0.01
 
 
 def test_warm_heatmap_chart_stays_eligible():
@@ -244,6 +273,24 @@ def test_mixed_chart_pip_is_selectable_when_it_is_the_only_evidence():
     assert selection.observation is VisualObservation.OBSERVED
 
 
+def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
+    segment = PresentationSegment(28_000, 32_000)
+    selection = select_frame(
+        segment,
+        (
+            FrameCandidate(
+                FrameProbe(28_500, "post_cut"),
+                CORPUS / "gex_dark_chart_with_webcam_pip.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "gex_dark_chart_with_webcam_pip.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
+
+
 @pytest.mark.parametrize(
     "evidence_name",
     (
@@ -286,6 +333,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "vertical_blinds_talking_head.jpg",
         "office_panel_talking_head.jpg",
         "empty_whiteboard.jpg",
+        "empty_ceiling_grid.jpg",
+        "face_plus_ceiling_grid.jpg",
     ),
 )
 @pytest.mark.parametrize(
@@ -295,6 +344,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "beige_text_slide.jpg",
         "beige_text_slide_header.jpg",
         "chart_with_webcam_pip.jpg",
+        "gex_dark_chart_with_webcam_pip.jpg",
+        "volatility_0058_bright_slide.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(
