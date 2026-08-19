@@ -198,5 +198,17 @@
   "finance_volume_histogram.jpg": {
     "expected": "keep",
     "label": "finance_mid_sat_volume_histogram"
+  },
+  "piano_keys_vertical.jpg": {
+    "expected": "reject",
+    "label": "vertical_bar_piano_keys_no_data"
+  },
+  "zebra_vertical_stripes.jpg": {
+    "expected": "reject",
+    "label": "vertical_zebra_stripes_no_data"
+  },
+  "face_plus_vertical_bars.jpg": {
+    "expected": "reject",
+    "label": "face_plus_vertical_bar_talking_head"
   }
 }

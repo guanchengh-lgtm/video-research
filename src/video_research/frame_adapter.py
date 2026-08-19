@@ -731,6 +731,7 @@ def _has_evidence_structure(
         text_mass >= 0.02
         and text_components >= 3
         and has_text_organization
+        and text_rows >= 2
         and canvas_fraction >= 0.40
         and 0.05 <= structure_edges <= 0.25
         and not has_color_tile_grid
@@ -1204,7 +1205,7 @@ def _ink_text_stats_for_polarity(
             continue
         aspect = max(bbox_width, bbox_height) / max(min(bbox_width, bbox_height), 1)
         occupancy = len(component) / (bbox_width * bbox_height)
-        is_bar = aspect >= 4.0 and min(bbox_width, bbox_height) <= 14
+        is_bar = bbox_width >= 4.0 * max(bbox_height, 1) and bbox_height <= 14
         is_glyph = (
             len(component) <= 70
             and bbox_height <= 12

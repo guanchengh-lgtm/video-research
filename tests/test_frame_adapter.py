@@ -143,6 +143,9 @@ def test_edge_dense_non_data_static_is_rejected():
         ("launchpad_with_labels.jpg", "no_evidence"),
         ("titled_sticky_wall.jpg", "no_evidence"),
         ("calendar_month_grid.jpg", "no_evidence"),
+        ("piano_keys_vertical.jpg", "no_evidence"),
+        ("zebra_vertical_stripes.jpg", "no_evidence"),
+        ("face_plus_vertical_bars.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -150,6 +153,30 @@ def test_structured_non_data_backgrounds_are_rejected(filename, reason):
 
     assert not features.eligible
     assert features.rejection_reason == reason
+
+
+@pytest.mark.parametrize(
+    ("filename", "reason"),
+    (
+        ("piano_keys_vertical.jpg", "no_evidence"),
+        ("zebra_vertical_stripes.jpg", "no_evidence"),
+    ),
+)
+def test_vertical_bar_strips_are_not_slide_text(filename, reason):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == reason
+
+
+def test_face_plus_vertical_bars_talking_head_is_hard_dropped():
+    features = analyze_frame(
+        CORPUS / "face_plus_vertical_bars.jpg", FrameSelectionConfig()
+    )
+
+    assert not features.eligible
+    assert features.rejection_reason == "face_dominant"
+    assert features.largest_warm_component_fraction >= 0.05
 
 
 def test_empty_architectural_grid_is_not_chart_evidence():
@@ -498,6 +525,9 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "launchpad_with_labels.jpg",
         "titled_sticky_wall.jpg",
         "calendar_month_grid.jpg",
+        "piano_keys_vertical.jpg",
+        "zebra_vertical_stripes.jpg",
+        "face_plus_vertical_bars.jpg",
     ),
 )
 @pytest.mark.parametrize(
