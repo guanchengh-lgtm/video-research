@@ -378,5 +378,21 @@
   "labeled_form_ui.jpg": {
     "expected": "keep",
     "label": "labeled_form_settings_ui"
+  },
+  "industrial_panel_grid.jpg": {
+    "expected": "reject",
+    "label": "industrial_panel_grid_axis_geometry_no_data"
+  },
+  "appliance_keypad_grid.jpg": {
+    "expected": "reject",
+    "label": "appliance_keypad_grid_no_data"
+  },
+  "face_plus_keypad.jpg": {
+    "expected": "reject",
+    "label": "face_plus_keypad_talking_head"
+  },
+  "face_plus_panel_grid.jpg": {
+    "expected": "reject",
+    "label": "face_plus_industrial_panel_talking_head"
   }
 }

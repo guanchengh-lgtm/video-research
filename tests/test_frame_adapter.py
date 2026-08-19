@@ -173,6 +173,10 @@ def test_edge_dense_non_data_static_is_rejected():
         ("kanban_card_board.jpg", "no_evidence"),
         ("face_plus_kanban.jpg", "face_dominant"),
         ("unlabeled_color_regions.jpg", "no_evidence"),
+        ("industrial_panel_grid.jpg", "no_evidence"),
+        ("appliance_keypad_grid.jpg", "no_evidence"),
+        ("face_plus_keypad.jpg", "face_dominant"),
+        ("face_plus_panel_grid.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -481,6 +485,8 @@ def test_face_plus_color_stalls_talking_head_is_hard_dropped():
         "face_plus_pcb_traces.jpg",
         "face_plus_equalizer.jpg",
         "face_plus_kanban.jpg",
+        "face_plus_keypad.jpg",
+        "face_plus_panel_grid.jpg",
     ),
 )
 def test_face_plus_dense_nongraph_backgrounds_are_hard_dropped(filename):
@@ -536,6 +542,8 @@ def test_labeled_radial_kpi_and_form_frames_are_selectable_alone(filename):
         "unlabeled_band_wall.jpg",
         "kanban_card_board.jpg",
         "unlabeled_color_regions.jpg",
+        "industrial_panel_grid.jpg",
+        "appliance_keypad_grid.jpg",
     ),
 )
 def test_furniture_free_bar_and_ui_chrome_are_rejected(filename):
@@ -555,6 +563,8 @@ def test_furniture_free_bar_and_ui_chrome_are_rejected(filename):
         "unlabeled_band_wall.jpg",
         "kanban_card_board.jpg",
         "unlabeled_color_regions.jpg",
+        "industrial_panel_grid.jpg",
+        "appliance_keypad_grid.jpg",
     ),
 )
 def test_dense_nongraph_stable_pair_loses_to_later_settled_chart(distractor_name):
@@ -796,6 +806,10 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "kanban_card_board.jpg",
         "face_plus_kanban.jpg",
         "unlabeled_color_regions.jpg",
+        "industrial_panel_grid.jpg",
+        "appliance_keypad_grid.jpg",
+        "face_plus_keypad.jpg",
+        "face_plus_panel_grid.jpg",
     ),
 )
 @pytest.mark.parametrize(

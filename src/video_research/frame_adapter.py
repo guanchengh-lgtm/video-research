@@ -952,9 +952,21 @@ def _has_evidence_structure(
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
     )
-    # Bidir/color need labels, real axes, or platform density with series marks —
-    # not bare long H/V grids / crossword lattices / dense calendars / traces.
+    # Bidir/color need labels, series/legend marks, platform data, or axes with
+    # real data marks — not bare long H/V panel/keypad geometry alone.
     axis_bidir_stroke_cap = 0.18 if dark_theme else 0.10
+    has_axis_data_marks = (
+        text_mass >= 0.008
+        or (
+            has_series_marks
+            and series_columns >= 32
+            and series_regularity >= 0.50
+        )
+        or (
+            color_panel_mass >= 0.08
+            and structure_edges <= 0.20
+        )
+    )
     has_bidir_semantic_furniture = (
         has_label_furniture
         or has_label_ink
@@ -963,6 +975,8 @@ def _has_evidence_structure(
             has_axis_furniture
             and has_stroke_ink
             and stroke_mass <= axis_bidir_stroke_cap
+            and has_axis_data_marks
+            and not has_box_diagram_geometry
         )
     )
     structure_hi = 0.30 if dark_theme else 0.22
@@ -1056,7 +1070,12 @@ def _has_evidence_structure(
                 and has_glyph_label_structure
                 and has_real_label_marks
             )
-            or (has_axis_furniture and color_panel_count >= 4)
+            or (
+                has_axis_furniture
+                and color_panel_count >= 4
+                and has_real_label_marks
+                and text_mass >= 0.008
+            )
         )
     )
     has_color_panel = (
@@ -1155,8 +1174,13 @@ def _has_evidence_structure(
         and band_count >= 3
         and (
             has_label_furniture
-            or has_stroke_ink
             or (short_h_glyphs >= 60 and short_v_glyphs >= 80)
+            or (
+                has_stroke_ink
+                and has_series_marks
+                and series_columns >= 40
+                and series_regularity >= 0.55
+            )
         )
     )
     # Single-series bar/histogram: regular columns + axes/title, no V-dominance.
@@ -1200,10 +1224,20 @@ def _has_evidence_structure(
         and band_count >= 3
         and stroke_mass <= bar_stroke_cap
         and has_bar_bodies
+        and not has_box_diagram_geometry
         and (
-            has_axis_furniture
-            or has_label_furniture
+            has_label_furniture
             or has_multiband_bar_partition
+            or (
+                has_axis_furniture
+                and (
+                    text_mass >= 0.008
+                    or (
+                        color_panel_mass >= 0.05
+                        and color_panel_count >= 3
+                    )
+                )
+            )
         )
     )
     # Horizontal bullet/KPI rows: repeated aligned bars + category/value labels.
@@ -1222,8 +1256,10 @@ def _has_evidence_structure(
         and text_components >= 4
         and (
             has_label_furniture
-            or has_axis_lines
-            or has_axis_furniture
+            or (
+                (has_axis_lines or has_axis_furniture)
+                and text_mass >= 0.008
+            )
         )
         and (
             has_glyph_label_structure
