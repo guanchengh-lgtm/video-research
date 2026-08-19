@@ -95,6 +95,29 @@ def test_beige_text_slide_stays_eligible():
     assert features.rejection_reason is None
 
 
+def test_office_wall_clutter_without_data_is_rejected():
+    features = analyze_frame(CORPUS / "office_wall_clutter.jpg", FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "no_evidence"
+
+
+def test_warm_heatmap_chart_stays_eligible():
+    features = analyze_frame(CORPUS / "warm_heatmap_chart.jpg", FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+    assert features.mean_saturation > 80
+
+
+def test_orange_area_chart_stays_eligible():
+    features = analyze_frame(CORPUS / "orange_area_chart.jpg", FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+    assert features.mean_saturation > 60
+
+
 @pytest.mark.parametrize(
     "filename",
     (
@@ -170,6 +193,35 @@ def test_mixed_chart_pip_is_selectable_when_it_is_the_only_evidence():
 
     assert selection.selected is not None
     assert selection.selected.path.name == "chart_with_webcam_pip.jpg"
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "evidence_name",
+    (
+        "beige_text_slide_header.jpg",
+        "volatility_0058_bright_slide.jpg",
+        "chart_with_webcam_pip.jpg",
+        "warm_heatmap_chart.jpg",
+        "orange_area_chart.jpg",
+        "orb_0730_face_dominant.jpg",
+    ),
+)
+def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
+    segment = PresentationSegment(0, 10_000)
+    selection = select_frame(
+        segment,
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"), CORPUS / "office_wall_clutter.jpg"
+            ),
+            FrameCandidate(FrameProbe(2_000, "post_cut"), CORPUS / evidence_name),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == evidence_name
     assert selection.observation is VisualObservation.OBSERVED
 
 

@@ -54,5 +54,17 @@
   "beige_text_slide_rail.jpg": {
     "expected": "keep",
     "label": "beige_tan_text_slide_rail"
+  },
+  "office_wall_clutter.jpg": {
+    "expected": "reject",
+    "label": "cool_office_wall_no_data"
+  },
+  "warm_heatmap_chart.jpg": {
+    "expected": "keep",
+    "label": "warm_orange_heatmap_chart"
+  },
+  "orange_area_chart.jpg": {
+    "expected": "keep",
+    "label": "warm_orange_area_chart"
   }
 }
