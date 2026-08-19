@@ -190,6 +190,10 @@ def test_edge_dense_non_data_static_is_rejected():
         ("face_plus_colorbar_schedule_board.jpg", "face_dominant"),
         ("arial_sprint_kanban.jpg", "no_evidence"),
         ("face_plus_arial_sprint_kanban.jpg", "face_dominant"),
+        ("light_month_calendar.jpg", "no_evidence"),
+        ("connector_mindmap.jpg", "no_evidence"),
+        ("light_org_chart.jpg", "no_evidence"),
+        ("face_plus_light_calendar.jpg", "face_dominant"),
     ),
 )
 def test_structured_non_data_backgrounds_are_rejected(filename, reason):
@@ -316,6 +320,8 @@ def test_thin_candlestick_charts_stay_eligible(filename):
         "sparse_scatter_chart.jpg",
         "dense_numeric_table.jpg",
         "spreadsheet_grid.jpg",
+        "real_font_spreadsheet.jpg",
+        "real_font_pnl_table.jpg",
         "funnel_chart.jpg",
         "stacked_area_full_plot.jpg",
         "dark_dashboard_bar.jpg",
@@ -398,6 +404,8 @@ def test_soft_mid_sat_area_charts_with_furniture_stay_eligible(filename):
         "labeled_form_ui.jpg",
         "real_font_agenda_slide.jpg",
         "real_font_axis_histogram.jpg",
+        "real_font_spreadsheet.jpg",
+        "real_font_pnl_table.jpg",
     ),
 )
 def test_ordinary_chart_and_dark_slide_solos_are_observed(filename):
@@ -755,8 +763,39 @@ def test_real_font_axis_histogram_stays_eligible():
 @pytest.mark.parametrize(
     "filename",
     (
+        "real_font_spreadsheet.jpg",
+        "real_font_pnl_table.jpg",
+    ),
+)
+def test_real_font_tables_stay_eligible(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "light_month_calendar.jpg",
+        "connector_mindmap.jpg",
+        "light_org_chart.jpg",
+    ),
+)
+def test_stroke_slide_does_not_accept_grid_or_diagram_chrome(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "no_evidence"
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
         "real_font_agenda_slide.jpg",
         "real_font_axis_histogram.jpg",
+        "real_font_spreadsheet.jpg",
+        "real_font_pnl_table.jpg",
     ),
 )
 def test_real_font_slide_and_histogram_are_selectable_alone(filename):
@@ -807,6 +846,9 @@ def test_node_box_connector_diagrams_are_not_chart_evidence(filename):
         "er_entity_boxes.jpg",
         "er_entity_dense.jpg",
         "unlabeled_colorbar_schedule_board.jpg",
+        "light_month_calendar.jpg",
+        "connector_mindmap.jpg",
+        "light_org_chart.jpg",
     ),
 )
 def test_dense_nongraph_stable_pair_loses_to_later_settled_chart(distractor_name):
@@ -973,6 +1015,8 @@ def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
         "sparse_scatter_chart.jpg",
         "dense_numeric_table.jpg",
         "spreadsheet_grid.jpg",
+        "real_font_spreadsheet.jpg",
+        "real_font_pnl_table.jpg",
         "funnel_chart.jpg",
         "stacked_area_full_plot.jpg",
         "waterfall_bridge_chart.jpg",
@@ -1053,6 +1097,10 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "face_plus_kanban.jpg",
         "arial_sprint_kanban.jpg",
         "face_plus_arial_sprint_kanban.jpg",
+        "light_month_calendar.jpg",
+        "connector_mindmap.jpg",
+        "light_org_chart.jpg",
+        "face_plus_light_calendar.jpg",
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
         "appliance_keypad_grid.jpg",
@@ -1106,6 +1154,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "gantt_timeline_chart.jpg",
         "real_font_agenda_slide.jpg",
         "real_font_axis_histogram.jpg",
+        "real_font_spreadsheet.jpg",
+        "real_font_pnl_table.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(

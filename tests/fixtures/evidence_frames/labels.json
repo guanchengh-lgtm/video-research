@@ -462,5 +462,29 @@
   "real_font_axis_histogram.jpg": {
     "expected": "keep",
     "label": "real_font_axis_bar_histogram"
+  },
+  "light_month_calendar.jpg": {
+    "expected": "reject",
+    "label": "light_month_calendar_grid_no_chart"
+  },
+  "connector_mindmap.jpg": {
+    "expected": "reject",
+    "label": "connector_mindmap_diagram_no_chart"
+  },
+  "light_org_chart.jpg": {
+    "expected": "reject",
+    "label": "light_org_chart_node_boxes_no_chart"
+  },
+  "face_plus_light_calendar.jpg": {
+    "expected": "reject",
+    "label": "face_plus_light_calendar_talking_head"
+  },
+  "real_font_spreadsheet.jpg": {
+    "expected": "keep",
+    "label": "real_font_spreadsheet_table"
+  },
+  "real_font_pnl_table.jpg": {
+    "expected": "keep",
+    "label": "real_font_pnl_desk_table"
   }
 }

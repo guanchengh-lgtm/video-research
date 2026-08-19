@@ -935,20 +935,25 @@ def _has_evidence_structure(
         and not has_color_tile_grid
         and not has_box_diagram_geometry
     )
-    # Real-font agenda/bullet slides: multi-row horizontal stroke bands after
-    # downscale lose glyph mass but keep aligned line geometry.
+    # Real-font agenda/bullet slides: sparse multi-row text-line strokes after
+    # downscale lose glyph mass. Dense grid/calendar bands, node-box chrome,
+    # and connector diagrams are not text-line organization.
     has_stroke_slide = (
-        canvas_fraction >= 0.55
-        and 0.025 <= structure_edges <= 0.16
-        and stroke_mass <= 0.12
-        and short_h_runs >= 30
+        canvas_fraction >= 0.70
+        and 0.025 <= structure_edges <= 0.08
+        and stroke_mass <= 0.08
+        and 30 <= short_h_runs <= 90
+        and short_v_runs <= 45
         and short_h_mass >= 0.012
-        and short_h_mass >= short_v_mass * 1.4
-        and band_count >= 4
+        and short_h_mass >= short_v_mass * 1.8
+        and 3 <= band_count <= 8
         and series_regularity >= 0.45
-        and series_columns >= 12
-        and color_panel_mass < 0.12
-        and sat_fraction < 0.20
+        and 10 <= series_columns <= 28
+        and color_panel_mass < 0.08
+        and sat_fraction < 0.15
+        and long_h_runs <= 3
+        and long_v_runs <= 1
+        and long_h_mass <= 0.015
         and not face_primary
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
@@ -1025,6 +1030,47 @@ def _has_evidence_structure(
         and not face_primary
         and not has_uniform_bar_sheet
         and not has_color_tile_grid
+    )
+    # Real-font tables: header/cell lattice survives downscale as stroke geometry
+    # when Arial glyphs vanish. Empty panel/card grids are denser or less regular
+    # and lack header-fill + column organization.
+    has_stroke_table = (
+        canvas_fraction >= 0.50
+        and 0.05 <= structure_edges <= 0.22
+        and 0.025 <= stroke_mass <= 0.10
+        and 5 <= band_count <= 16
+        and short_v_runs >= 30
+        and short_v_mass >= 0.008
+        and color_panel_mass < 0.15
+        and sat_fraction < 0.20
+        and not face_primary
+        and not has_uniform_bar_sheet
+        and not has_color_tile_grid
+        and not has_box_diagram_geometry
+        and not has_card_board_geometry
+        and (
+            (
+                # Sparse H+V cell lattice with column activity from cell content.
+                long_h_runs >= 3
+                and long_v_runs >= 2
+                and long_h_mass >= 0.012
+                and long_v_mass >= 0.005
+                and series_columns >= 26
+                and series_regularity >= 0.55
+                and 45 <= short_h_runs <= 100
+            )
+            or (
+                # Colored header bar + multi-row body (desk P&L / spreadsheet UI).
+                color_panel_mass >= 0.012
+                and long_h_runs >= 2
+                and long_h_mass >= 0.012
+                and short_h_runs >= 80
+                and short_v_runs >= 30
+                and series_columns >= 20
+                and series_regularity >= 0.40
+                and band_count >= 5
+            )
+        )
     )
     # Bidir/color need labels, series/legend marks, platform data, or axes with
     # real data marks — not bare long H/V panel/keypad geometry alone.
@@ -1531,6 +1577,7 @@ def _has_evidence_structure(
         or has_content_slide
         or has_data_table
         or has_spreadsheet_grid
+        or has_stroke_table
         or has_bidir_chart
         or has_color_chart
         or has_color_panel
