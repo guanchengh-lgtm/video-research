@@ -46,7 +46,6 @@ class FrameSelectionConfig:
     evidence_lowsat_strong_edge_fraction: float = 0.12
     evidence_canvas_with_structure_fraction: float = 0.40
     evidence_structure_edge_fraction: float = 0.08
-    face_component_max_slide_bbox_fraction: float = 0.85
     mixed_face_score_penalty: float = 0.12
     face_primary_score_penalty: float = 0.25
     mixed_face_score_ceiling: float = 0.75
@@ -303,6 +302,11 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
     face_regions = _face_like_regions(
         warm_mask, gray_values, edge_values, width, height, config
     )
+    compact_face_regions = tuple(
+        region
+        for region in face_regions
+        if region.bbox_fraction <= config.face_component_max_bbox_fraction
+    )
     component_fraction, bbox_fraction, component_occupancy = _largest_region_stats(
         face_regions
     )
@@ -311,7 +315,7 @@ def analyze_frame(path: Path, config: FrameSelectionConfig) -> FrameFeatures:
             warm_mask, width, height
         )
     face_mass = sum(region.fraction for region in face_regions)
-    face_mask = _region_bbox_mask(face_regions, width, height, frame_area)
+    face_mask = _region_bbox_mask(compact_face_regions, width, height, frame_area)
     has_evidence = _has_evidence_structure(
         gray_values,
         edge_values,
@@ -524,7 +528,7 @@ def _face_like_regions(
     height: int,
     config: FrameSelectionConfig,
 ) -> tuple[_FaceRegion, ...]:
-    """Compact, filled, textured warm regions — faces, not flat beige slides."""
+    """Filled, textured warm regions that may be faces (compact or closeup)."""
 
     frame_area = width * height
     regions: list[_FaceRegion] = []
@@ -539,11 +543,7 @@ def _face_like_regions(
         bbox_area = (max_x - min_x + 1) * (max_y - min_y + 1)
         bbox_fraction = bbox_area / frame_area
         occupancy = len(component) / bbox_area
-        if bbox_fraction >= config.face_component_max_slide_bbox_fraction:
-            continue
-        compact = bbox_fraction <= config.face_component_max_bbox_fraction
-        closeup = occupancy >= config.face_component_min_occupancy
-        if occupancy < config.face_component_min_occupancy or not (compact or closeup):
+        if occupancy < config.face_component_min_occupancy:
             continue
         internal_edges = sum(
             edge_values[index] > config.edge_threshold for index in component

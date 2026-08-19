@@ -95,6 +95,22 @@ def test_beige_text_slide_stays_eligible():
     assert features.rejection_reason is None
 
 
+@pytest.mark.parametrize(
+    "filename",
+    (
+        "beige_text_slide_header.jpg",
+        "beige_text_slide_letterbox.jpg",
+        "beige_text_slide_rail.jpg",
+    ),
+)
+def test_beige_text_slide_layouts_stay_eligible(filename):
+    features = analyze_frame(CORPUS / filename, FrameSelectionConfig())
+
+    assert features.eligible
+    assert features.rejection_reason is None
+    assert features.largest_warm_bbox_fraction > 0.45
+
+
 def test_closeup_talking_head_cannot_escape_face_dominance_bbox_limit():
     features = analyze_frame(
         CORPUS / "orb_0652_closeup_talking_head.jpg", FrameSelectionConfig()

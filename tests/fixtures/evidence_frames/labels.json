@@ -42,5 +42,17 @@
   "beige_text_slide.jpg": {
     "expected": "keep",
     "label": "beige_tan_text_slide"
+  },
+  "beige_text_slide_header.jpg": {
+    "expected": "keep",
+    "label": "beige_tan_text_slide_header"
+  },
+  "beige_text_slide_letterbox.jpg": {
+    "expected": "keep",
+    "label": "beige_tan_text_slide_letterbox"
+  },
+  "beige_text_slide_rail.jpg": {
+    "expected": "keep",
+    "label": "beige_tan_text_slide_rail"
   }
 }
