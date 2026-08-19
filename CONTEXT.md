@@ -28,6 +28,10 @@ _Avoid_: Guessed identity
 A continuous source interval using one coherent way of presenting information.
 _Avoid_: Whole-video format
 
+**Evidence Frame**:
+A visual sample kept as research evidence because it shows relevant on-screen data or text such as a chart, slide, numbers, or labeled UI. A pure talking-head sample is not an **Evidence Frame**.
+_Avoid_: Talking-head still, scene-boundary grab
+
 **Validated Transcript**:
 A timestamped speech record whose language, timing, speech coverage, and integrity are sufficient for research use.
 _Avoid_: Available captions
@@ -102,6 +106,8 @@ _Avoid_: Resume
 - A run finishes as exactly one of **Trusted-Complete Run**, **Partial Run**, or **Failed Run**
 - A **Partial Run** or **Failed Run** must never be presented as a **Trusted-Complete Run**
 - A source contains one or more **Presentation Segments**
+- A **Presentation Segment** may yield at most one selected **Evidence Frame**
+- A rejected or empty visual interval remains unobserved rather than inventing an **Evidence Frame**
 - A material claim involving multiple speakers requires reliable **Speaker Attribution**
 - Failed caption validation requires a **Fallback Transcript**
 - A run produces exactly one **Research Pack**

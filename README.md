@@ -6,7 +6,9 @@ run ends with an honest verdict rather than a polished one.
 
 ## Status
 
-The assurance core is implemented and tested. Live video ingestion is not.
+The assurance core is implemented and tested. Live end-to-end video ingestion
+for **Research Pack** runs is not. An optional Evidence Frame extractor can
+download a source and keep settled chart or slide frames (see Install).
 
 A run today reads a **deterministic extracted-source fixture**, builds the
 canonical claim ledger and coverage manifest, runs the completeness gates and an

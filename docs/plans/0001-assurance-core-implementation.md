@@ -262,7 +262,7 @@ Each item is deferred with a reason. None is cut from the specification.
 
 | Deferred | Reason |
 |----------|--------|
-| Live YouTube ingestion (`yt-dlp`) | Needs network and violates CI determinism. Lands as an `ExtractionEngine` adapter behind the port already built here. |
+| Live YouTube ingestion for full Research Pack runs (`yt-dlp`) | Needs network and violates CI determinism. Lands as an `ExtractionEngine` adapter behind the port already built here. Frame-only download and selection live in `tools/extract_evidence_frames.py` under the optional `[frames]` extra; that tool is not a full-run engine. |
 | `mcp-video-analyzer` adapter | Spec makes adoption provisional pending the trial acceptance gate (research note §"Trial acceptance gate"). |
 | Model-backed claim extraction | Lands as a `ClaimExtractor` adapter. The port and its contract tests exist in slice 1. |
 | Model-backed semantic verifier | Lands as an `IndependentVerifier` adapter. Slice 1 ships the structural verifier; semantic checks report `UNVERIFIED`, which correctly forces `PARTIAL`. |
