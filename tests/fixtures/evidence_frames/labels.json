@@ -422,5 +422,21 @@
   "face_plus_er_diagram.jpg": {
     "expected": "reject",
     "label": "face_plus_er_diagram_talking_head"
+  },
+  "dense_kanban_board.jpg": {
+    "expected": "reject",
+    "label": "dense_kanban_card_board"
+  },
+  "labeled_kanban_board.jpg": {
+    "expected": "reject",
+    "label": "labeled_kanban_card_board"
+  },
+  "waterfall_bridge_chart.jpg": {
+    "expected": "keep",
+    "label": "waterfall_bridge_chart"
+  },
+  "gantt_timeline_chart.jpg": {
+    "expected": "keep",
+    "label": "gantt_timeline_chart"
   }
 }

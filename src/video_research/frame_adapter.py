@@ -863,8 +863,21 @@ def _has_evidence_structure(
         or has_axis_lines
         or has_platform_data_marks
     )
-    # Node-box + connector diagrams (org/flow/ER): long box rules and/or
-    # bar-chip labels inside frames. Not pure axis charts (no bar-chip text).
+    # Node-box + connector diagrams (org/flow/ER) and kanban/card boards:
+    # long box rules and/or multi-row bar-chip labels inside frames. Not pure
+    # axis charts (no bar-chip text).
+    has_card_board_geometry = (
+        not has_real_glyphs
+        and glyph_components == 0
+        and max_text_row >= 2
+        and text_components >= 3
+        and 0.008 <= text_mass < 0.06
+        and series_regularity >= 0.40
+        and band_count >= 8
+        and long_h_mass >= 0.02
+        and short_h_runs >= 40
+        and short_v_runs >= 40
+    )
     has_box_diagram_geometry = (
         not has_real_glyphs
         and text_mass < 0.14
@@ -877,6 +890,7 @@ def _has_evidence_structure(
                 and has_text_organization
                 and max_text_row >= 2
             )
+            or has_card_board_geometry
         )
     )
 
@@ -1178,13 +1192,14 @@ def _has_evidence_structure(
         and (has_vertical_series or has_horizontal_series)
     )
     # Box/whisker and sparse axis-mark charts: strong axes + mark/series ink that
-    # dominates panel rules — not bare comic panels or architectural L-frames.
+    # dominates panel rules — not bare comic panels, card boards, or L-frames.
     long_axis_mass = long_h_mass + long_v_mass
     has_axis_mark_chart = (
         canvas_fraction >= 0.45
         and 0.05 <= structure_edges <= 0.22
         and has_strong_axes
         and not face_primary
+        and not has_box_diagram_geometry
         and series_columns >= 24
         and series_regularity >= 0.45
         and short_v_runs >= 50
@@ -1195,13 +1210,23 @@ def _has_evidence_structure(
         and stroke_mass >= long_axis_mass * 0.85
         and band_count >= 3
         and (
-            has_label_furniture
-            or (short_h_glyphs >= 60 and short_v_glyphs >= 80)
+            (has_label_furniture and has_real_glyphs)
+            or (
+                # Axis-tied whisker/point marks — not multi-row card chrome.
+                has_series_marks
+                and series_columns >= 40
+                and series_regularity >= 0.55
+                and short_h_glyphs >= 60
+                and short_v_glyphs >= 80
+                and max_text_row <= 1
+                and text_mass < 0.02
+            )
             or (
                 has_stroke_ink
                 and has_series_marks
                 and series_columns >= 40
                 and series_regularity >= 0.55
+                and max_text_row <= 1
             )
         )
     )
@@ -1234,6 +1259,29 @@ def _has_evidence_structure(
         and v_glyph_fraction >= 0.50
         and not has_color_tile_grid
     )
+    # Waterfall/bridge: floating vertical bodies on strong axes even when
+    # downscaled tick labels vanish and color panels merge.
+    has_floating_bar_bridge = (
+        has_strong_axes
+        and (has_axis_lines or has_axis_furniture)
+        and short_v_mass >= 0.012
+        and short_v_runs >= 20
+        and short_h_mass >= 0.012
+        and short_v_mass >= short_h_mass * 0.95
+        and series_columns >= 12
+        and series_regularity >= 0.35
+        and band_count >= 3
+        and 0.025 <= sat_fraction <= 0.40
+        and (
+            color_panel_count >= 2
+            or (color_panel_mass >= 0.02 and sat_fraction >= 0.05)
+            or (
+                short_v_mass >= 0.02
+                and series_columns >= 24
+                and not has_face
+            )
+        )
+    )
     has_vertical_bar_histogram = (
         canvas_fraction >= 0.40
         and 0.04 <= structure_edges <= bar_se_hi
@@ -1250,6 +1298,7 @@ def _has_evidence_structure(
         and (
             has_label_furniture
             or has_multiband_bar_partition
+            or has_floating_bar_bridge
             or (
                 has_axis_furniture
                 and (
@@ -1263,17 +1312,10 @@ def _has_evidence_structure(
         )
     )
     # Horizontal bullet/KPI rows: repeated aligned bars + category/value labels.
-    has_horizontal_bar_chart = (
-        canvas_fraction >= 0.40
-        and 0.04 <= structure_edges <= bar_se_hi
-        and not face_primary
-        and not has_color_tile_grid
-        and band_count >= 4
-        and short_h_mass >= 0.010
-        and color_panel_count >= 3
+    has_labeled_horizontal_bars = (
+        color_panel_count >= 3
         and color_panel_mass >= 0.04
         and color_panel_bbox <= 0.40
-        and stroke_mass <= bar_stroke_cap
         and text_rows >= 3
         and text_components >= 4
         and (
@@ -1287,7 +1329,36 @@ def _has_evidence_structure(
             has_glyph_label_structure
             or (text_rows >= 5 and max_text_row >= 1 and text_mass >= 0.02)
         )
+    )
+    # Gantt/timeline: axis frame + repeated horizontal bar bodies even when
+    # category glyphs disappear after downscale.
+    has_timeline_bar_chart = (
+        (has_axis_lines or has_axis_furniture or has_strong_axes)
+        and long_h_mass >= 0.010
+        and long_h_runs >= 2
+        and short_h_mass >= 0.012
+        and short_h_runs >= 18
+        and series_columns >= 12
+        and series_regularity >= 0.35
+        and band_count >= 4
+        and 0.02 <= sat_fraction <= 0.45
+        and short_h_mass >= short_v_mass * 0.55
+        and (
+            color_panel_count >= 3
+            or color_panel_mass >= 0.03
+            or (sat_fraction >= 0.03 and long_h_runs >= 4)
+        )
+    )
+    has_horizontal_bar_chart = (
+        canvas_fraction >= 0.40
+        and 0.04 <= structure_edges <= bar_se_hi
+        and not face_primary
+        and not has_color_tile_grid
+        and band_count >= 4
+        and short_h_mass >= 0.010
+        and stroke_mass <= bar_stroke_cap
         and not has_box_diagram_geometry
+        and (has_labeled_horizontal_bars or has_timeline_bar_chart)
     )
     has_bar_histogram = has_vertical_bar_histogram or has_horizontal_bar_chart
     # Labeled multi-band funnel/partition charts (warm fills may look face-like).

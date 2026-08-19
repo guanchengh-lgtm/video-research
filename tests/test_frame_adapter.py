@@ -171,6 +171,8 @@ def test_edge_dense_non_data_static_is_rejected():
         ("unlabeled_band_wall.jpg", "no_evidence"),
         ("face_plus_equalizer.jpg", "face_dominant"),
         ("kanban_card_board.jpg", "no_evidence"),
+        ("dense_kanban_board.jpg", "no_evidence"),
+        ("labeled_kanban_board.jpg", "no_evidence"),
         ("face_plus_kanban.jpg", "face_dominant"),
         ("unlabeled_color_regions.jpg", "no_evidence"),
         ("industrial_panel_grid.jpg", "no_evidence"),
@@ -527,6 +529,25 @@ def test_horizontal_bullet_kpi_is_selectable_alone():
 @pytest.mark.parametrize(
     "filename",
     (
+        "waterfall_bridge_chart.jpg",
+        "gantt_timeline_chart.jpg",
+    ),
+)
+def test_waterfall_and_gantt_charts_are_selectable_alone(filename):
+    selection = select_frame(
+        PresentationSegment(0, 5_000),
+        (FrameCandidate(FrameProbe(500, "post_cut"), CORPUS / filename),),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == filename
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+@pytest.mark.parametrize(
+    "filename",
+    (
         "radar_spider_chart.jpg",
         "gauge_readout_chart.jpg",
         "kpi_sparkline_cards.jpg",
@@ -551,6 +572,8 @@ def test_labeled_radial_kpi_and_form_frames_are_selectable_alone(filename):
         "equalizer_spectrum_wall.jpg",
         "unlabeled_band_wall.jpg",
         "kanban_card_board.jpg",
+        "dense_kanban_board.jpg",
+        "labeled_kanban_board.jpg",
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
         "appliance_keypad_grid.jpg",
@@ -588,6 +611,8 @@ def test_node_box_connector_diagrams_are_not_chart_evidence(filename):
         "equalizer_spectrum_wall.jpg",
         "unlabeled_band_wall.jpg",
         "kanban_card_board.jpg",
+        "dense_kanban_board.jpg",
+        "labeled_kanban_board.jpg",
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
         "appliance_keypad_grid.jpg",
@@ -763,6 +788,8 @@ def test_gex_dark_chart_with_webcam_pip_is_selectable_alone():
         "spreadsheet_grid.jpg",
         "funnel_chart.jpg",
         "stacked_area_full_plot.jpg",
+        "waterfall_bridge_chart.jpg",
+        "gantt_timeline_chart.jpg",
     ),
 )
 def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
@@ -834,6 +861,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "unlabeled_band_wall.jpg",
         "face_plus_equalizer.jpg",
         "kanban_card_board.jpg",
+        "dense_kanban_board.jpg",
+        "labeled_kanban_board.jpg",
         "face_plus_kanban.jpg",
         "unlabeled_color_regions.jpg",
         "industrial_panel_grid.jpg",
@@ -882,6 +911,8 @@ def test_non_evidence_office_clutter_loses_to_settled_evidence(evidence_name):
         "gauge_readout_chart.jpg",
         "kpi_sparkline_cards.jpg",
         "labeled_form_ui.jpg",
+        "waterfall_bridge_chart.jpg",
+        "gantt_timeline_chart.jpg",
     ),
 )
 def test_structured_background_non_data_loses_to_settled_evidence(
