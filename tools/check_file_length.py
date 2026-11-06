@@ -157,13 +157,9 @@ def problems(counts, frozen):
         if lines is None or lines < LIMIT:
             notes.append(f"{rel}: now under {LIMIT} lines; remove its freeze line")
         elif lines > recorded:
-            errors.append(
-                f"{rel}: frozen at {recorded} lines, now {lines}; it may not grow"
-            )
+            errors.append(f"{rel}: frozen at {recorded} lines, now {lines}; it may not grow")
         elif lines < recorded:
-            notes.append(
-                f"{rel}: shrank to {lines} lines; you may lower its freeze count"
-            )
+            notes.append(f"{rel}: shrank to {lines} lines; you may lower its freeze count")
     return errors, notes
 
 
@@ -194,9 +190,7 @@ def main():
     if unreachable:
         notes.append(f"freeze-raise refusal skipped: {unreachable}")
     else:
-        errors += loosened(
-            parse_baseline(old_text, f"merge-base:{args.baseline}"), current
-        )
+        errors += loosened(parse_baseline(old_text, f"merge-base:{args.baseline}"), current)
     for note in notes:
         print(f"note: {note}", file=sys.stderr)
     for error in errors:
