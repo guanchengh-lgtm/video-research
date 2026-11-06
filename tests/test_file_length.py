@@ -81,7 +81,7 @@ class FileLengthCap(unittest.TestCase):
         )
         result = check(root)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("remove it from", result.stderr)
+        self.assertIn("remove its freeze line", result.stderr)
 
     def test_a_raised_freeze_count_is_refused(self):
         root = self.committed_repo(
@@ -99,7 +99,7 @@ class FileLengthCap(unittest.TestCase):
         Path(root, ".file-length-baseline").write_text("freeze m.py 1100\n")
         result = check(root)
         self.assertEqual(result.returncode, 1)
-        self.assertIn("new 'freeze m.py'", result.stderr)
+        self.assertIn("new freeze line 'freeze m.py 1100'", result.stderr)
 
     def test_a_new_exclude_line_is_refused(self):
         root = self.committed_repo({"m.py": self.lines(10), ".file-length-baseline": ""})
@@ -107,7 +107,7 @@ class FileLengthCap(unittest.TestCase):
         Path(root, ".file-length-baseline").write_text("exclude m.py\n")
         result = check(root)
         self.assertEqual(result.returncode, 1)
-        self.assertIn("new 'exclude m.py'", result.stderr)
+        self.assertIn("new exclude line 'exclude m.py'", result.stderr)
 
     def test_the_baseline_is_compared_with_the_merge_base_not_the_main_tip(self):
         root = self.committed_repo(
@@ -132,7 +132,7 @@ class FileLengthCap(unittest.TestCase):
         self.commit(root)
         result = check(root)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("widening check skipped", result.stderr)
+        self.assertIn("refusal skipped", result.stderr)
 
     def test_an_inherited_git_dir_does_not_redirect_the_check(self):
         root = self.repo_with({"m.py": self.lines(1000)})
