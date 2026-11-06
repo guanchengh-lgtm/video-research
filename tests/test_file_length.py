@@ -22,6 +22,10 @@ def check(root, *args):
     )
 
 
+def git(root, *args):
+    subprocess.run(["git", "-C", str(root), *args], check=True, env=ENV)
+
+
 class FileLengthCap(unittest.TestCase):
     def repo_with(self, files):
         tmp = tempfile.TemporaryDirectory()
@@ -31,6 +35,17 @@ class FileLengthCap(unittest.TestCase):
             Path(tmp.name, name).write_text(text)
         subprocess.run(["git", "-C", tmp.name, "add", "-A"], check=True, env=ENV)
         return tmp.name
+
+    def committed_repo(self, files):
+        root = self.repo_with(files)
+        self.commit(root)
+        git(root, "update-ref", "refs/remotes/origin/main", "HEAD")
+        return root
+
+    @staticmethod
+    def commit(root):
+        git(root, "add", "-A")
+        git(root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "c")
 
     @staticmethod
     def lines(n):
@@ -52,21 +67,72 @@ class FileLengthCap(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("frozen at 1200 lines, now 1201", result.stderr)
 
-    def test_a_frozen_file_that_shrinks_must_record_its_new_count(self):
-        root = self.repo_with(
+    def test_a_frozen_file_that_shrinks_passes_with_a_note(self):
+        root = self.committed_repo(
             {"m.py": self.lines(1100), ".file-length-baseline": "freeze m.py 1200\n"}
         )
         result = check(root)
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("record it as 'freeze m.py 1100'", result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("shrank to 1100 lines", result.stderr)
 
-    def test_a_frozen_entry_under_the_cap_is_stale(self):
-        root = self.repo_with(
+    def test_a_frozen_file_under_the_cap_passes_with_a_note_to_remove_it(self):
+        root = self.committed_repo(
             {"m.py": self.lines(999), ".file-length-baseline": "freeze m.py 1200\n"}
         )
         result = check(root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("remove its freeze line", result.stderr)
+
+    def test_a_raised_freeze_count_is_refused(self):
+        root = self.committed_repo(
+            {"m.py": self.lines(1200), ".file-length-baseline": "freeze m.py 1200\n"}
+        )
+        Path(root, "m.py").write_text(self.lines(1300))
+        Path(root, ".file-length-baseline").write_text("freeze m.py 1300\n")
+        result = check(root)
         self.assertEqual(result.returncode, 1)
-        self.assertIn("frozen entry is stale", result.stderr)
+        self.assertIn("raised from 1200 to 1300", result.stderr)
+
+    def test_a_new_freeze_line_is_refused(self):
+        root = self.committed_repo({"m.py": self.lines(10), ".file-length-baseline": ""})
+        Path(root, "m.py").write_text(self.lines(1100))
+        Path(root, ".file-length-baseline").write_text("freeze m.py 1100\n")
+        result = check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("new freeze line 'freeze m.py 1100'", result.stderr)
+
+    def test_a_new_exclude_line_is_refused(self):
+        root = self.committed_repo({"m.py": self.lines(10), ".file-length-baseline": ""})
+        Path(root, "m.py").write_text(self.lines(1100))
+        Path(root, ".file-length-baseline").write_text("exclude m.py\n")
+        result = check(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("new exclude line 'exclude m.py'", result.stderr)
+
+    def test_the_baseline_is_compared_with_the_merge_base_not_the_main_tip(self):
+        root = self.committed_repo(
+            {"m.py": self.lines(1200), ".file-length-baseline": "freeze m.py 1200\n"}
+        )
+        git(root, "checkout", "-qb", "work")
+        Path(root, "n.py").write_text("y = 1\n")
+        self.commit(root)
+        git(root, "checkout", "-q", "-")
+        Path(root, "m.py").write_text(self.lines(1100))
+        Path(root, ".file-length-baseline").write_text("freeze m.py 1100\n")
+        self.commit(root)
+        git(root, "update-ref", "refs/remotes/origin/main", "HEAD")
+        git(root, "checkout", "-q", "work")
+        result = check(root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_without_a_default_branch_the_widening_check_is_skipped_visibly(self):
+        root = self.repo_with(
+            {"m.py": self.lines(1100), ".file-length-baseline": "freeze m.py 1100\n"}
+        )
+        self.commit(root)
+        result = check(root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("refusal skipped", result.stderr)
 
     def test_an_inherited_git_dir_does_not_redirect_the_check(self):
         root = self.repo_with({"m.py": self.lines(1000)})
