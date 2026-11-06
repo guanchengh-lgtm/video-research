@@ -1,0 +1,5 @@
+# The daemon reads commands only from the default branch.
+allow_repo_commands: true
+
+commands:
+  lint: ruff check .

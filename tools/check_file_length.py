@@ -4,8 +4,9 @@
 The baseline file (default .file-length-baseline) holds two kinds of lines:
   exclude <glob>          a generated or vendored code file this check skips
   freeze <path> <lines>   an existing offender; it may shrink, never grow
-A frozen entry must equal the file's current count, so every shrink is recorded
-and the list only gets shorter. New entries are a reviewed hand edit.
+A frozen file may shrink below its recorded count. Against the baseline at the
+merge-base with the default branch, the check refuses a raised freeze count, a
+new freeze line, and a new exclude line, so the list only gets shorter.
 """
 
 import argparse
@@ -13,6 +14,7 @@ import fnmatch
 import os
 import subprocess
 import sys
+from typing import NamedTuple
 
 LIMIT = 1000
 BAD_LINE = "expected 'exclude <glob>' or 'freeze <path> <lines>'"
@@ -67,22 +69,79 @@ def is_code(path, head):
     return ext == "" and head.startswith(b"#!")
 
 
-def read_baseline(path):
+class Finding(NamedTuple):
+    is_error: bool
+    message: str
+
+
+def git(root, *args):
+    return subprocess.run(
+        ["git", "-C", root, *args],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        env=git_env(),
+        check=False,
+    )
+
+
+def parse_baseline(text, label):
     excludes, frozen = [], {}
-    if not os.path.exists(path):
-        return excludes, frozen
-    with open(path, encoding="utf-8") as fh:
-        for number, raw in enumerate(fh, 1):
-            parts = raw.split("#", 1)[0].split()
-            if not parts:
-                continue
-            if parts[0] == "exclude" and len(parts) == 2:
-                excludes.append(parts[1])
-            elif parts[0] == "freeze" and len(parts) == 3 and parts[2].isdigit():
-                frozen[parts[1]] = int(parts[2])
-            else:
-                sys.exit(f"{path}:{number}: {BAD_LINE}")
+    for number, raw in enumerate(text.splitlines(), 1):
+        parts = raw.split("#", 1)[0].split()
+        if not parts:
+            continue
+        if parts[0] == "exclude" and len(parts) == 2:
+            excludes.append(parts[1])
+        elif parts[0] == "freeze" and len(parts) == 3 and parts[2].isdigit():
+            frozen[parts[1]] = int(parts[2])
+        else:
+            sys.exit(f"{label}:{number}: {BAD_LINE}")
     return excludes, frozen
+
+
+def read_baseline(path):
+    if not os.path.exists(path):
+        return [], {}
+    with open(path, encoding="utf-8") as fh:
+        return parse_baseline(fh.read(), path)
+
+
+def skipped(reason):
+    return Finding(False, f"baseline widening check skipped: {reason}")
+
+
+def default_ref(root):
+    for ref in ("origin/HEAD", "origin/main"):
+        if git(root, "rev-parse", "--verify", "-q", ref + "^{commit}").returncode == 0:
+            return ref
+    return None
+
+
+def widening(root, baseline, excludes, frozen):
+    ref = default_ref(root)
+    if ref is None:
+        yield skipped("no origin/HEAD or origin/main")
+        return
+    base = git(root, "merge-base", "HEAD", ref)
+    if base.returncode != 0:
+        yield skipped(f"no merge-base of HEAD and {ref}")
+        return
+    shown = git(root, "show", f"{base.stdout.decode().strip()}:./{baseline}")
+    if shown.returncode != 0:
+        yield skipped(f"no {baseline} at the merge-base with {ref}")
+        return
+    text = shown.stdout.decode("utf-8")
+    old_excludes, old_frozen = parse_baseline(text, f"{ref}:{baseline}")
+    for glob in excludes:
+        if glob not in old_excludes:
+            yield Finding(True, f"{baseline}: new 'exclude {glob}' is not on {ref}")
+    for rel, recorded in sorted(frozen.items()):
+        before = old_frozen.get(rel)
+        if before is None:
+            yield Finding(True, f"{baseline}: new 'freeze {rel}' is not on {ref}")
+        elif recorded > before:
+            raised = f"raised from {before} to {recorded}"
+            yield Finding(True, f"{baseline}: freeze {rel} {raised} ({ref})")
 
 
 def tracked_code_files(root, excludes):
@@ -107,15 +166,15 @@ def tracked_code_files(root, excludes):
 def problems(counts, frozen, baseline):
     for rel, lines in sorted(counts.items()):
         if rel not in frozen and lines >= LIMIT:
-            yield f"{rel}: {lines} lines; code files must stay under {LIMIT}"
+            yield Finding(True, f"{rel}: {lines} lines; must stay under {LIMIT}")
     for rel, recorded in sorted(frozen.items()):
-        lines = counts.get(rel)
-        if lines is None or lines < LIMIT:
-            yield f"{rel}: frozen entry is stale; remove it from {baseline}"
-        elif lines > recorded:
-            yield f"{rel}: frozen at {recorded} lines, now {lines}; it may not grow"
+        lines = counts.get(rel, 0)
+        if lines > recorded:
+            yield Finding(True, f"{rel}: frozen at {recorded} lines, now {lines}")
+        elif lines < LIMIT:
+            yield Finding(False, f"{rel}: under {LIMIT}; remove it from {baseline}")
         elif lines < recorded:
-            yield f"{rel}: shrank to {lines} lines; record it as 'freeze {rel} {lines}'"
+            yield Finding(False, f"{rel}: shrank to {lines} lines; lower its freeze")
 
 
 def main():
@@ -139,10 +198,14 @@ def main():
                 print(f"freeze {rel} {lines}")
         return 0
 
-    errors = list(problems(counts, frozen, args.baseline))
-    for error in errors:
-        print(error, file=sys.stderr)
-    return 1 if errors else 0
+    found = [
+        *problems(counts, frozen, args.baseline),
+        *widening(args.root, args.baseline, excludes, frozen),
+    ]
+    for finding in found:
+        prefix = "" if finding.is_error else "note: "
+        print(prefix + finding.message, file=sys.stderr)
+    return 1 if any(finding.is_error for finding in found) else 0
 
 
 if __name__ == "__main__":
