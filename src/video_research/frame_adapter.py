@@ -9,8 +9,8 @@ unobserved visual window and the existing gates fail closed.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import asdict, dataclass, field, replace
+from collections.abc import Callable, Iterator
+from dataclasses import asdict, dataclass, replace
 from itertools import pairwise
 from pathlib import Path
 
@@ -98,7 +98,6 @@ class FrameCandidate:
     probe: FrameProbe
     path: Path
     features: FrameFeatures | None = None
-    stability_to_next: float | None = None
 
 
 @dataclass(frozen=True)
@@ -197,9 +196,9 @@ def apply_frame_selections(
 class FrameSelection:
     segment: PresentationSegment
     selected: CandidateEvaluation | None
-    evaluations: tuple[CandidateEvaluation, ...] = field(default_factory=tuple)
-    reason: str = ""
-    config_version: str = "evidence-frame-v4"
+    evaluations: tuple[CandidateEvaluation, ...]
+    reason: str
+    config_version: str
 
     @property
     def observation(self) -> VisualObservation:
@@ -462,7 +461,6 @@ def _is_skin_tone(pixel: tuple[int, int, int], max_saturation: float = 0.62) -> 
 
 @dataclass(frozen=True)
 class _FaceRegion:
-    indexes: tuple[int, ...]
     fraction: float
     bbox_fraction: float
     occupancy: float
@@ -546,7 +544,6 @@ def _face_like_regions(
             continue
         regions.append(
             _FaceRegion(
-                indexes=tuple(component),
                 fraction=fraction,
                 bbox_fraction=bbox_fraction,
                 occupancy=occupancy,
@@ -708,15 +705,15 @@ def _has_evidence_structure(
         or text_rows >= 3
         or (text_mass >= 0.045 and text_components >= 3 and max_text_row >= 2)
     )
-    # Stroke caps: dark themes with light axes produce denser edge mass.
-    stroke_ink_cap = 0.20 if dark_theme else 0.12
+    # Stroke cap: dark themes with light axes produce denser edge mass.
+    stroke_mass_cap = 0.20 if dark_theme else 0.12
     # Stroke/label ink only. Bare color tiles are not bidir/color-chart ink.
     has_stroke_ink = (
         short_h_glyphs >= 18
         and short_v_glyphs >= 12
         and h_glyph_fraction >= 0.30
         and v_glyph_fraction >= 0.30
-        and stroke_mass <= stroke_ink_cap
+        and stroke_mass <= stroke_mass_cap
     )
     # Real glyph ink only — solid bar-chip rows (gc==0) are not labels.
     has_real_glyphs = glyph_components >= 1
@@ -751,7 +748,6 @@ def _has_evidence_structure(
     has_strong_axes = (
         long_h_mass >= 0.014 and long_v_mass >= 0.010 and long_h_runs >= 2 and long_v_runs >= 2
     )
-    axis_stroke_cap = 0.20 if dark_theme else 0.12
     has_axis_furniture = (
         has_axis_lines
         and long_h_runs >= 2
@@ -760,12 +756,11 @@ def _has_evidence_structure(
         and short_v_mass >= 0.005
         and band_count >= 4
         and series_columns >= 8
-        and stroke_mass <= axis_stroke_cap
+        and stroke_mass <= stroke_mass_cap
     )
     has_platform_furniture = (
         has_stroke_ink
         and band_count >= 10
-        and stroke_mass <= stroke_ink_cap
         and short_h_runs >= 40
         and short_v_runs >= 18
         and not has_color_tile_grid
@@ -774,7 +769,6 @@ def _has_evidence_structure(
     has_dense_stroke_furniture = (
         has_stroke_ink
         and band_count >= 12
-        and stroke_mass <= stroke_ink_cap
         and short_h_runs >= 50
         and short_v_runs >= 25
         and not has_color_tile_grid
@@ -810,7 +804,6 @@ def _has_evidence_structure(
         and has_series_marks
         and canvas_fraction >= 0.50
         and structure_edges <= platform_se_hi
-        and has_stroke_ink
         and color_panel_mass < 0.15
         and short_h_runs >= 80
         and not has_unlabeled_sparse_color
@@ -1754,6 +1747,39 @@ def _has_evidence_structure(
     )
 
 
+def _interior_runs(
+    edge_values: list[int],
+    width: int,
+    height: int,
+    threshold: int,
+    *,
+    horizontal: bool,
+    margin: int,
+) -> Iterator[list[int]]:
+    if horizontal:
+        lines = (
+            edge_values[y * width + margin : (y + 1) * width - margin]
+            for y in range(margin, height - margin)
+        )
+    else:
+        lines = (
+            edge_values[margin * width + x : (height - margin) * width : width]
+            for x in range(margin, width - margin)
+        )
+    for line in lines:
+        lengths = []
+        run = 0
+        for value in line:
+            if value > threshold:
+                run += 1
+            elif run:
+                lengths.append(run)
+                run = 0
+        if run:
+            lengths.append(run)
+        yield lengths
+
+
 def _long_run_stats(
     edge_values: list[int],
     width: int,
@@ -1765,39 +1791,15 @@ def _long_run_stats(
 ) -> tuple[float, int]:
     """Mass and count of long interior edge runs (axis/spine lines)."""
 
-    total = 0
-    runs = 0
-    frame_area = width * height
-    if horizontal:
-        for y in range(2, height - 2):
-            run = 0
-            row = y * width
-            for x in range(2, width - 2):
-                if edge_values[row + x] > threshold:
-                    run += 1
-                else:
-                    if run >= min_length:
-                        total += run
-                        runs += 1
-                    run = 0
-            if run >= min_length:
-                total += run
-                runs += 1
-    else:
-        for x in range(2, width - 2):
-            run = 0
-            for y in range(2, height - 2):
-                if edge_values[y * width + x] > threshold:
-                    run += 1
-                else:
-                    if run >= min_length:
-                        total += run
-                        runs += 1
-                    run = 0
-            if run >= min_length:
-                total += run
-                runs += 1
-    return total / frame_area, runs
+    runs = [
+        run
+        for line in _interior_runs(
+            edge_values, width, height, threshold, horizontal=horizontal, margin=2
+        )
+        for run in line
+        if run >= min_length
+    ]
+    return sum(runs) / (width * height), len(runs)
 
 
 def _short_run_stats(
@@ -1818,50 +1820,16 @@ def _short_run_stats(
     Face masks are intentionally not applied: chart ink under a PIP must remain.
     """
 
-    total = 0
-    runs = 0
-    glyphs = 0
-    frame_area = width * height
-    if horizontal:
-        for y in range(3, height - 3):
-            run = 0
-            row = y * width
-            for x in range(3, width - 3):
-                index = row + x
-                if edge_values[index] > threshold:
-                    run += 1
-                else:
-                    if min_length <= run <= max_length:
-                        total += run
-                        runs += 1
-                        if run <= glyph_max_length:
-                            glyphs += 1
-                    run = 0
-            if min_length <= run <= max_length:
-                total += run
-                runs += 1
-                if run <= glyph_max_length:
-                    glyphs += 1
-    else:
-        for x in range(3, width - 3):
-            run = 0
-            for y in range(3, height - 3):
-                index = y * width + x
-                if edge_values[index] > threshold:
-                    run += 1
-                else:
-                    if min_length <= run <= max_length:
-                        total += run
-                        runs += 1
-                        if run <= glyph_max_length:
-                            glyphs += 1
-                    run = 0
-            if min_length <= run <= max_length:
-                total += run
-                runs += 1
-                if run <= glyph_max_length:
-                    glyphs += 1
-    return total / frame_area, runs, glyphs
+    runs = [
+        run
+        for line in _interior_runs(
+            edge_values, width, height, threshold, horizontal=horizontal, margin=3
+        )
+        for run in line
+        if min_length <= run <= max_length
+    ]
+    glyphs = sum(run <= glyph_max_length for run in runs)
+    return sum(runs) / (width * height), len(runs), glyphs
 
 
 def _structured_band_count(edge_values: list[int], width: int, height: int, threshold: int) -> int:
@@ -1935,24 +1903,14 @@ def _column_series_stats(
     Scattered organic texture rarely keeps tight gap regularity.
     """
 
-    columns: list[int] = []
-    for x in range(3, width - 3):
-        runs = 0
-        run = 0
-        mass = 0
-        for y in range(3, height - 3):
-            if edge_values[y * width + x] > threshold:
-                run += 1
-            else:
-                if 3 <= run <= 22:
-                    runs += 1
-                    mass += run
-                run = 0
-        if 3 <= run <= 22:
-            runs += 1
-            mass += run
-        if runs >= 1 and mass >= 3:
-            columns.append(x)
+    columns = [
+        x
+        for x, line in enumerate(
+            _interior_runs(edge_values, width, height, threshold, horizontal=False, margin=3),
+            start=3,
+        )
+        if any(3 <= run <= 22 for run in line)
+    ]
     if len(columns) < 8:
         return len(columns), 0.0
     gaps = [columns[index + 1] - columns[index] for index in range(len(columns) - 1)]
