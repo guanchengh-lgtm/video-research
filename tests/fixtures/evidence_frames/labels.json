@@ -9,11 +9,13 @@
   },
   "orb_0652_talking_head.jpg": {
     "expected": "reject",
-    "label": "full_talking_head"
+    "label": "full_talking_head",
+    "reason": "face_dominant"
   },
   "orb_0652_closeup_talking_head.jpg": {
     "expected": "reject",
-    "label": "closeup_talking_head_boundary"
+    "label": "closeup_talking_head_boundary",
+    "reason": "face_dominant"
   },
   "orb_0654_settled_slide.jpg": {
     "expected": "keep",
@@ -33,11 +35,13 @@
   },
   "studio_talking_head.jpg": {
     "expected": "reject",
-    "label": "studio_talking_head_no_data"
+    "label": "studio_talking_head_no_data",
+    "reason": "face_dominant"
   },
   "small_face_no_data.jpg": {
     "expected": "reject",
-    "label": "small_face_plain_backdrop"
+    "label": "small_face_plain_backdrop",
+    "reason": "face_dominant"
   },
   "beige_text_slide.jpg": {
     "expected": "keep",
@@ -57,7 +61,8 @@
   },
   "office_wall_clutter.jpg": {
     "expected": "reject",
-    "label": "cool_office_wall_no_data"
+    "label": "cool_office_wall_no_data",
+    "reason": "no_evidence"
   },
   "warm_heatmap_chart.jpg": {
     "expected": "keep",
@@ -73,47 +78,58 @@
   },
   "blinds_talking_head.jpg": {
     "expected": "reject",
-    "label": "blinds_structured_bg_talking_head"
+    "label": "blinds_structured_bg_talking_head",
+    "reason": "face_dominant"
   },
   "brick_talking_head.jpg": {
     "expected": "reject",
-    "label": "brick_structured_bg_talking_head"
+    "label": "brick_structured_bg_talking_head",
+    "reason": "face_dominant"
   },
   "edge_dense_static.jpg": {
     "expected": "reject",
-    "label": "edge_dense_non_data_static"
+    "label": "edge_dense_non_data_static",
+    "reason": "no_evidence"
   },
   "bookshelf_talking_head.jpg": {
     "expected": "reject",
-    "label": "bookshelf_structured_bg_talking_head"
+    "label": "bookshelf_structured_bg_talking_head",
+    "reason": "face_dominant"
   },
   "bookshelf_only.jpg": {
     "expected": "reject",
-    "label": "bookshelf_no_data"
+    "label": "bookshelf_no_data",
+    "reason": "no_evidence"
   },
   "vertical_blinds.jpg": {
     "expected": "reject",
-    "label": "vertical_blinds_no_data"
+    "label": "vertical_blinds_no_data",
+    "reason": "no_evidence"
   },
   "vertical_blinds_talking_head.jpg": {
     "expected": "reject",
-    "label": "vertical_blinds_talking_head"
+    "label": "vertical_blinds_talking_head",
+    "reason": "face_dominant"
   },
   "office_panel_talking_head.jpg": {
     "expected": "reject",
-    "label": "office_panel_talking_head"
+    "label": "office_panel_talking_head",
+    "reason": "face_dominant"
   },
   "empty_whiteboard.jpg": {
     "expected": "reject",
-    "label": "empty_whiteboard_border_only"
+    "label": "empty_whiteboard_border_only",
+    "reason": "no_evidence"
   },
   "empty_ceiling_grid.jpg": {
     "expected": "reject",
-    "label": "empty_architectural_ceiling_grid"
+    "label": "empty_architectural_ceiling_grid",
+    "reason": "no_evidence"
   },
   "face_plus_ceiling_grid.jpg": {
     "expected": "reject",
-    "label": "face_plus_empty_grid_talking_head"
+    "label": "face_plus_empty_grid_talking_head",
+    "reason": "face_dominant"
   },
   "gex_dark_chart_with_webcam_pip.jpg": {
     "expected": "keep",
@@ -121,15 +137,18 @@
   },
   "foliage_only.jpg": {
     "expected": "reject",
-    "label": "foliage_organic_no_data"
+    "label": "foliage_organic_no_data",
+    "reason": "no_evidence"
   },
   "foliage_dense.jpg": {
     "expected": "reject",
-    "label": "dense_foliage_no_data"
+    "label": "dense_foliage_no_data",
+    "reason": "no_evidence"
   },
   "city_night_windows.jpg": {
     "expected": "reject",
-    "label": "lit_city_windows_no_data"
+    "label": "lit_city_windows_no_data",
+    "reason": "no_evidence"
   },
   "thin_candlestick_chart.jpg": {
     "expected": "keep",
@@ -161,15 +180,18 @@
   },
   "app_icon_grid.jpg": {
     "expected": "reject",
-    "label": "app_icon_tile_grid_no_chart"
+    "label": "app_icon_tile_grid_no_chart",
+    "reason": "no_evidence"
   },
   "sticky_note_wall.jpg": {
     "expected": "reject",
-    "label": "sticky_note_tile_wall_no_chart"
+    "label": "sticky_note_tile_wall_no_chart",
+    "reason": "face_dominant"
   },
   "traffic_light_board.jpg": {
     "expected": "reject",
-    "label": "traffic_light_tile_board_no_chart"
+    "label": "traffic_light_tile_board_no_chart",
+    "reason": "no_evidence"
   },
   "soft_orange_area_chart.jpg": {
     "expected": "keep",
@@ -181,15 +203,18 @@
   },
   "launchpad_with_labels.jpg": {
     "expected": "reject",
-    "label": "launchpad_icon_grid_with_caption_chips"
+    "label": "launchpad_icon_grid_with_caption_chips",
+    "reason": "no_evidence"
   },
   "titled_sticky_wall.jpg": {
     "expected": "reject",
-    "label": "titled_sticky_note_wall_no_chart"
+    "label": "titled_sticky_note_wall_no_chart",
+    "reason": "no_evidence"
   },
   "calendar_month_grid.jpg": {
     "expected": "reject",
-    "label": "empty_month_calendar_grid_no_chart"
+    "label": "empty_month_calendar_grid_no_chart",
+    "reason": "no_evidence"
   },
   "simple_blue_histogram.jpg": {
     "expected": "keep",
@@ -201,35 +226,43 @@
   },
   "piano_keys_vertical.jpg": {
     "expected": "reject",
-    "label": "vertical_bar_piano_keys_no_data"
+    "label": "vertical_bar_piano_keys_no_data",
+    "reason": "no_evidence"
   },
   "zebra_vertical_stripes.jpg": {
     "expected": "reject",
-    "label": "vertical_zebra_stripes_no_data"
+    "label": "vertical_zebra_stripes_no_data",
+    "reason": "no_evidence"
   },
   "face_plus_vertical_bars.jpg": {
     "expected": "reject",
-    "label": "face_plus_vertical_bar_talking_head"
+    "label": "face_plus_vertical_bar_talking_head",
+    "reason": "face_dominant"
   },
   "logo_wall.jpg": {
     "expected": "reject",
-    "label": "logo_wall_edge_scatter_no_chart"
+    "label": "logo_wall_edge_scatter_no_chart",
+    "reason": "no_evidence"
   },
   "led_dot_matrix.jpg": {
     "expected": "reject",
-    "label": "led_dot_matrix_no_chart"
+    "label": "led_dot_matrix_no_chart",
+    "reason": "no_evidence"
   },
   "simple_map_outline.jpg": {
     "expected": "reject",
-    "label": "simple_map_outline_no_chart"
+    "label": "simple_map_outline_no_chart",
+    "reason": "no_evidence"
   },
   "qr_module_grid.jpg": {
     "expected": "reject",
-    "label": "qr_module_grid_no_glyph_text"
+    "label": "qr_module_grid_no_glyph_text",
+    "reason": "no_evidence"
   },
   "code_editor_stack.jpg": {
     "expected": "reject",
-    "label": "code_editor_line_stack_no_chart"
+    "label": "code_editor_line_stack_no_chart",
+    "reason": "no_evidence"
   },
   "box_whisker_chart.jpg": {
     "expected": "keep",
@@ -249,19 +282,23 @@
   },
   "comic_panel_storyboard.jpg": {
     "expected": "reject",
-    "label": "comic_panel_storyboard_no_data"
+    "label": "comic_panel_storyboard_no_data",
+    "reason": "no_evidence"
   },
   "blueprint_grid.jpg": {
     "expected": "reject",
-    "label": "architectural_blueprint_grid_no_data"
+    "label": "architectural_blueprint_grid_no_data",
+    "reason": "no_evidence"
   },
   "crossword_grid.jpg": {
     "expected": "reject",
-    "label": "crossword_grid_no_data"
+    "label": "crossword_grid_no_data",
+    "reason": "no_evidence"
   },
   "face_plus_comic_panels.jpg": {
     "expected": "reject",
-    "label": "face_plus_comic_panel_talking_head"
+    "label": "face_plus_comic_panel_talking_head",
+    "reason": "face_dominant"
   },
   "spreadsheet_grid.jpg": {
     "expected": "keep",
@@ -273,15 +310,18 @@
   },
   "barcode_sheet.jpg": {
     "expected": "reject",
-    "label": "barcode_stripe_sheet_no_table"
+    "label": "barcode_stripe_sheet_no_table",
+    "reason": "no_evidence"
   },
   "face_plus_barcode.jpg": {
     "expected": "reject",
-    "label": "face_plus_barcode_talking_head"
+    "label": "face_plus_barcode_talking_head",
+    "reason": "face_dominant"
   },
   "solid_color_blocks.jpg": {
     "expected": "reject",
-    "label": "furniture_free_color_blocks_no_partition"
+    "label": "furniture_free_color_blocks_no_partition",
+    "reason": "no_evidence"
   },
   "stacked_area_full_plot.jpg": {
     "expected": "keep",
@@ -289,15 +329,18 @@
   },
   "stripe_color_bands.jpg": {
     "expected": "reject",
-    "label": "horizontal_color_stripe_bands_no_data"
+    "label": "horizontal_color_stripe_bands_no_data",
+    "reason": "no_evidence"
   },
   "color_stall_grid.jpg": {
     "expected": "reject",
-    "label": "multicolor_stall_tile_grid_no_chart"
+    "label": "multicolor_stall_tile_grid_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_color_stalls.jpg": {
     "expected": "reject",
-    "label": "face_plus_color_stall_tile_talking_head"
+    "label": "face_plus_color_stall_tile_talking_head",
+    "reason": "face_dominant"
   },
   "dark_dashboard_bar.jpg": {
     "expected": "keep",
@@ -313,27 +356,33 @@
   },
   "busy_calendar_events.jpg": {
     "expected": "reject",
-    "label": "busy_calendar_event_chips_no_chart"
+    "label": "busy_calendar_event_chips_no_chart",
+    "reason": "no_evidence"
   },
   "process_flowchart.jpg": {
     "expected": "reject",
-    "label": "process_flowchart_box_diagram_no_chart"
+    "label": "process_flowchart_box_diagram_no_chart",
+    "reason": "no_evidence"
   },
   "pcb_trace_board.jpg": {
     "expected": "reject",
-    "label": "pcb_trace_board_no_chart"
+    "label": "pcb_trace_board_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_busy_calendar.jpg": {
     "expected": "reject",
-    "label": "face_plus_busy_calendar_talking_head"
+    "label": "face_plus_busy_calendar_talking_head",
+    "reason": "face_dominant"
   },
   "face_plus_flowchart.jpg": {
     "expected": "reject",
-    "label": "face_plus_flowchart_talking_head"
+    "label": "face_plus_flowchart_talking_head",
+    "reason": "face_dominant"
   },
   "face_plus_pcb_traces.jpg": {
     "expected": "reject",
-    "label": "face_plus_pcb_trace_talking_head"
+    "label": "face_plus_pcb_trace_talking_head",
+    "reason": "face_dominant"
   },
   "horizontal_bullet_kpi.jpg": {
     "expected": "keep",
@@ -341,27 +390,33 @@
   },
   "equalizer_spectrum_wall.jpg": {
     "expected": "reject",
-    "label": "equalizer_spectrum_bar_wall_no_chart"
+    "label": "equalizer_spectrum_bar_wall_no_chart",
+    "reason": "no_evidence"
   },
   "unlabeled_band_wall.jpg": {
     "expected": "reject",
-    "label": "unlabeled_color_band_wall_no_partition"
+    "label": "unlabeled_color_band_wall_no_partition",
+    "reason": "no_evidence"
   },
   "face_plus_equalizer.jpg": {
     "expected": "reject",
-    "label": "face_plus_equalizer_talking_head"
+    "label": "face_plus_equalizer_talking_head",
+    "reason": "face_dominant"
   },
   "kanban_card_board.jpg": {
     "expected": "reject",
-    "label": "kanban_card_board_ui_chrome_no_chart"
+    "label": "kanban_card_board_ui_chrome_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_kanban.jpg": {
     "expected": "reject",
-    "label": "face_plus_kanban_talking_head"
+    "label": "face_plus_kanban_talking_head",
+    "reason": "face_dominant"
   },
   "unlabeled_color_regions.jpg": {
     "expected": "reject",
-    "label": "unlabeled_color_region_blobs_no_chart"
+    "label": "unlabeled_color_region_blobs_no_chart",
+    "reason": "no_evidence"
   },
   "radar_spider_chart.jpg": {
     "expected": "keep",
@@ -381,55 +436,68 @@
   },
   "industrial_panel_grid.jpg": {
     "expected": "reject",
-    "label": "industrial_panel_grid_axis_geometry_no_data"
+    "label": "industrial_panel_grid_axis_geometry_no_data",
+    "reason": "no_evidence"
   },
   "appliance_keypad_grid.jpg": {
     "expected": "reject",
-    "label": "appliance_keypad_grid_no_data"
+    "label": "appliance_keypad_grid_no_data",
+    "reason": "no_evidence"
   },
   "face_plus_keypad.jpg": {
     "expected": "reject",
-    "label": "face_plus_keypad_talking_head"
+    "label": "face_plus_keypad_talking_head",
+    "reason": "face_dominant"
   },
   "face_plus_panel_grid.jpg": {
     "expected": "reject",
-    "label": "face_plus_industrial_panel_talking_head"
+    "label": "face_plus_industrial_panel_talking_head",
+    "reason": "face_dominant"
   },
   "org_chart_boxes.jpg": {
     "expected": "reject",
-    "label": "org_chart_node_box_diagram_no_chart"
+    "label": "org_chart_node_box_diagram_no_chart",
+    "reason": "no_evidence"
   },
   "decision_tree_boxes.jpg": {
     "expected": "reject",
-    "label": "decision_tree_node_box_diagram_no_chart"
+    "label": "decision_tree_node_box_diagram_no_chart",
+    "reason": "no_evidence"
   },
   "er_entity_boxes.jpg": {
     "expected": "reject",
-    "label": "er_entity_box_diagram_no_chart"
+    "label": "er_entity_box_diagram_no_chart",
+    "reason": "no_evidence"
   },
   "er_entity_dense.jpg": {
     "expected": "reject",
-    "label": "er_entity_dense_attribute_bars_no_chart"
+    "label": "er_entity_dense_attribute_bars_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_org_chart.jpg": {
     "expected": "reject",
-    "label": "face_plus_org_chart_talking_head"
+    "label": "face_plus_org_chart_talking_head",
+    "reason": "face_dominant"
   },
   "face_plus_decision_tree.jpg": {
     "expected": "reject",
-    "label": "face_plus_decision_tree_talking_head"
+    "label": "face_plus_decision_tree_talking_head",
+    "reason": "face_dominant"
   },
   "face_plus_er_diagram.jpg": {
     "expected": "reject",
-    "label": "face_plus_er_diagram_talking_head"
+    "label": "face_plus_er_diagram_talking_head",
+    "reason": "face_dominant"
   },
   "dense_kanban_board.jpg": {
     "expected": "reject",
-    "label": "dense_kanban_card_board"
+    "label": "dense_kanban_card_board",
+    "reason": "no_evidence"
   },
   "labeled_kanban_board.jpg": {
     "expected": "reject",
-    "label": "labeled_kanban_card_board"
+    "label": "labeled_kanban_card_board",
+    "reason": "no_evidence"
   },
   "waterfall_bridge_chart.jpg": {
     "expected": "keep",
@@ -441,19 +509,23 @@
   },
   "unlabeled_colorbar_schedule_board.jpg": {
     "expected": "reject",
-    "label": "unlabeled_colorbar_schedule_board_no_chart"
+    "label": "unlabeled_colorbar_schedule_board_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_colorbar_schedule_board.jpg": {
     "expected": "reject",
-    "label": "face_plus_colorbar_schedule_board_talking_head"
+    "label": "face_plus_colorbar_schedule_board_talking_head",
+    "reason": "face_dominant"
   },
   "arial_sprint_kanban.jpg": {
     "expected": "reject",
-    "label": "arial_sprint_kanban_card_chrome_no_chart"
+    "label": "arial_sprint_kanban_card_chrome_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_arial_sprint_kanban.jpg": {
     "expected": "reject",
-    "label": "face_plus_arial_sprint_kanban_talking_head"
+    "label": "face_plus_arial_sprint_kanban_talking_head",
+    "reason": "face_dominant"
   },
   "real_font_agenda_slide.jpg": {
     "expected": "keep",
@@ -465,19 +537,23 @@
   },
   "light_month_calendar.jpg": {
     "expected": "reject",
-    "label": "light_month_calendar_grid_no_chart"
+    "label": "light_month_calendar_grid_no_chart",
+    "reason": "no_evidence"
   },
   "connector_mindmap.jpg": {
     "expected": "reject",
-    "label": "connector_mindmap_diagram_no_chart"
+    "label": "connector_mindmap_diagram_no_chart",
+    "reason": "no_evidence"
   },
   "light_org_chart.jpg": {
     "expected": "reject",
-    "label": "light_org_chart_node_boxes_no_chart"
+    "label": "light_org_chart_node_boxes_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_light_calendar.jpg": {
     "expected": "reject",
-    "label": "face_plus_light_calendar_talking_head"
+    "label": "face_plus_light_calendar_talking_head",
+    "reason": "face_dominant"
   },
   "real_font_spreadsheet.jpg": {
     "expected": "keep",
@@ -505,23 +581,28 @@
   },
   "network_topology.jpg": {
     "expected": "reject",
-    "label": "network_topology_node_link"
+    "label": "network_topology_node_link",
+    "reason": "no_evidence"
   },
   "decision_flow_links.jpg": {
     "expected": "reject",
-    "label": "decision_flow_node_link"
+    "label": "decision_flow_node_link",
+    "reason": "no_evidence"
   },
   "mindmap_node_links.jpg": {
     "expected": "reject",
-    "label": "mindmap_node_link_diagram"
+    "label": "mindmap_node_link_diagram",
+    "reason": "no_evidence"
   },
   "transit_metro_map.jpg": {
     "expected": "reject",
-    "label": "transit_route_map"
+    "label": "transit_route_map",
+    "reason": "no_evidence"
   },
   "face_plus_network_topology.jpg": {
     "expected": "reject",
-    "label": "face_plus_network_diagram"
+    "label": "face_plus_network_diagram",
+    "reason": "face_dominant"
   },
   "stacked_horizontal_bars.jpg": {
     "expected": "keep",
@@ -533,23 +614,28 @@
   },
   "sticky_process_board.jpg": {
     "expected": "reject",
-    "label": "sticky_process_board_no_chart"
+    "label": "sticky_process_board_no_chart",
+    "reason": "face_dominant"
   },
   "blue_sticky_process_board.jpg": {
     "expected": "reject",
-    "label": "blue_sticky_process_board_no_chart"
+    "label": "blue_sticky_process_board_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_blue_sticky_process.jpg": {
     "expected": "reject",
-    "label": "face_plus_blue_sticky_process_talking_head"
+    "label": "face_plus_blue_sticky_process_talking_head",
+    "reason": "face_dominant"
   },
   "white_card_process_board.jpg": {
     "expected": "reject",
-    "label": "white_card_process_board_no_chart"
+    "label": "white_card_process_board_no_chart",
+    "reason": "no_evidence"
   },
   "face_plus_white_card_process.jpg": {
     "expected": "reject",
-    "label": "face_plus_white_card_process_talking_head"
+    "label": "face_plus_white_card_process_talking_head",
+    "reason": "face_dominant"
   },
   "sankey_flow_chart.jpg": {
     "expected": "keep",

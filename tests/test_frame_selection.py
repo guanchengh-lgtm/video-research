@@ -1,0 +1,331 @@
+from __future__ import annotations
+
+from dataclasses import replace
+from pathlib import Path
+
+import pytest
+from PIL import Image, ImageDraw, ImageFilter
+
+from video_research.adapters import (
+    FixtureClaimExtractor,
+    FixtureExtractionEngine,
+    StructuralVerifier,
+)
+from video_research.frame_adapter import (
+    FrameCandidate,
+    FrameFeatures,
+    FrameProbe,
+    FrameSelectionConfig,
+    FrameSelectionExtractionAdapter,
+    PresentationSegment,
+    analyze_frame,
+    build_presentation_segments,
+    probes_for_segment,
+    select_frame,
+)
+from video_research.run import RunStatus
+from video_research.skill import research_video
+from video_research.timeline import VisualObservation
+
+CORPUS = Path(__file__).parent / "fixtures" / "evidence_frames"
+
+
+def test_dark_and_light_theme_twins_are_both_selectable_evidence():
+    selection = select_frame(
+        PresentationSegment(0, 10_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "dark_theme_text_slide.jpg",
+            ),
+            FrameCandidate(
+                FrameProbe(2_000, "post_cut"),
+                CORPUS / "light_theme_text_slide.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name in {
+        "dark_theme_text_slide.jpg",
+        "light_theme_text_slide.jpg",
+    }
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_dark_and_light_dashboard_bar_twins_are_both_selectable_evidence():
+    selection = select_frame(
+        PresentationSegment(0, 10_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                CORPUS / "dark_dashboard_bar.jpg",
+            ),
+            FrameCandidate(
+                FrameProbe(2_000, "post_cut"),
+                CORPUS / "light_dashboard_bar.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path.name in {
+        "dark_dashboard_bar.jpg",
+        "light_dashboard_bar.jpg",
+    }
+    assert selection.observation is VisualObservation.OBSERVED
+
+
+def test_settled_slide_wins_over_boundary_talking_head():
+    config = FrameSelectionConfig()
+    segment = PresentationSegment(412_000, 416_000)
+    candidates = (
+        FrameCandidate(FrameProbe(412_000, "boundary"), CORPUS / "orb_0652_talking_head.jpg"),
+        FrameCandidate(FrameProbe(414_000, "post_cut"), CORPUS / "orb_0654_settled_slide.jpg"),
+    )
+
+    selection = select_frame(segment, candidates, config)
+
+    assert selection.selected is not None
+    assert selection.selected.probe.timestamp_ms == 414_000
+    assert selection.observation is VisualObservation.OBSERVED
+    assert selection.manifest()["selected_timestamp_ms"] == 414_000
+
+
+def test_clean_slide_beats_text_card_with_webcam_pip():
+    config = FrameSelectionConfig()
+    segment = PresentationSegment(450_000, 455_000)
+    candidates = (
+        FrameCandidate(FrameProbe(450_500, "post_cut"), CORPUS / "orb_0730_face_dominant.jpg"),
+        FrameCandidate(FrameProbe(452_000, "post_cut"), CORPUS / "orb_0654_settled_slide.jpg"),
+    )
+
+    selection = select_frame(segment, candidates, config)
+
+    assert selection.selected is not None
+    assert selection.selected.path.name == "orb_0654_settled_slide.jpg"
+
+
+def test_clean_preference_ignores_noncompact_warm_slide_fill(tmp_path):
+    """Clean preference uses compact face/PIP mass, not non-compact warm fills."""
+
+    pip = tmp_path / "pip.png"
+    slide = tmp_path / "slide.png"
+    Image.new("RGB", (32, 32), "navy").save(pip)
+    Image.new("RGB", (32, 32), "white").save(slide)
+    selection = select_frame(
+        PresentationSegment(0, 2_000),
+        (
+            FrameCandidate(
+                FrameProbe(500, "post_cut"),
+                pip,
+                features=_eligible_features(0.95, warm_component=0.02, compact_face=0.02),
+            ),
+            FrameCandidate(
+                FrameProbe(1_000, "post_cut"),
+                slide,
+                # Large warm fill (beige slide) but no compact face/PIP mass.
+                features=_eligible_features(0.70, warm_component=0.70, compact_face=0.0),
+            ),
+        ),
+        replace(FrameSelectionConfig(), stable_difference=1_000.0),
+    )
+
+    assert selection.selected is not None
+    assert selection.selected.path == slide
+
+
+def test_all_rejected_candidates_leave_visual_unobserved():
+    segment = PresentationSegment(412_000, 415_000)
+    selection = select_frame(
+        segment,
+        (
+            FrameCandidate(FrameProbe(412_500, "post_cut"), CORPUS / "orb_0652_talking_head.jpg"),
+            FrameCandidate(
+                FrameProbe(413_000, "post_cut"),
+                CORPUS / "orb_0652_closeup_talking_head.jpg",
+            ),
+        ),
+        FrameSelectionConfig(),
+    )
+
+    assert selection.selected is None
+    assert selection.reason == "no_eligible_candidate"
+    assert selection.observation is VisualObservation.UNOBSERVED
+
+
+def test_rejected_corpus_frame_degrades_public_run_to_partial(tmp_path):
+    fixture = Path(__file__).parent / "fixtures" / "talk_benchmark.json"
+    delegate = FixtureExtractionEngine(fixture)
+
+    def selections(source):
+        accepted = CORPUS / "orb_0654_settled_slide.jpg"
+        rejected = CORPUS / "orb_0652_talking_head.jpg"
+        results = []
+        for index, window in enumerate(source.windows):
+            segment = PresentationSegment(window.interval.start_ms, window.interval.end_ms)
+            path = rejected if index == len(source.windows) - 1 else accepted
+            results.append(
+                select_frame(
+                    segment,
+                    (FrameCandidate(FrameProbe(segment.start_ms + 500, "post_cut"), path),),
+                    FrameSelectionConfig(),
+                )
+            )
+        return tuple(results)
+
+    engine = FrameSelectionExtractionAdapter(delegate, selections)
+    extracted = engine.extract(str(fixture))
+    pack = research_video(
+        str(fixture),
+        engine=engine,
+        claim_extractor=FixtureClaimExtractor(fixture),
+        verifier=StructuralVerifier(),
+        output_dir=tmp_path / "pack",
+        run_id="run-frame-selection",
+        created_at="2026-08-19T00:00:00+00:00",
+    )
+
+    assert pack.status is RunStatus.PARTIAL
+    assert all(frame.interval.start_ms < 450_000 for frame in extracted.frames)
+    assert pack.coverage.windows[-1].visual is VisualObservation.UNOBSERVED
+    assert any(record.gate_id == "G4" and record.outcome == "fail" for record in pack.run.gates)
+
+
+def test_scene_cuts_form_contiguous_presentation_segments():
+    segments = build_presentation_segments([1_800, 1_000, 1_800], 4_000)
+
+    assert segments == (
+        PresentationSegment(0, 1_000),
+        PresentationSegment(1_000, 1_800),
+        PresentationSegment(1_800, 4_000),
+    )
+
+
+def test_rapid_cut_uses_midpoint_without_crossing_next_segment():
+    segment = PresentationSegment(1_000, 1_400)
+
+    probes = probes_for_segment(segment, FrameSelectionConfig())
+
+    assert probes == (FrameProbe(1_200, "short_segment_midpoint"),)
+    assert all(segment.start_ms <= probe.timestamp_ms < segment.end_ms for probe in probes)
+
+
+def test_no_cut_segment_gets_periodic_probes_for_later_visuals():
+    (segment,) = build_presentation_segments([], 46_000)
+
+    timestamps = [
+        probe.timestamp_ms for probe in probes_for_segment(segment, FrameSelectionConfig())
+    ]
+
+    assert timestamps[:3] == [500, 1_000, 2_000]
+    assert 15_000 in timestamps
+    assert 30_000 in timestamps
+    assert 45_000 in timestamps
+
+
+def test_claim_aligned_probe_stays_inside_its_presentation_segment():
+    segment = PresentationSegment(10_000, 12_000)
+
+    probes = probes_for_segment(segment, FrameSelectionConfig(), (9_000, 11_250, 12_500))
+
+    assert FrameProbe(11_250, "claim_aligned") in probes
+    assert all(segment.start_ms < probe.timestamp_ms < segment.end_ms for probe in probes)
+
+
+def test_never_stable_animation_chooses_best_eligible_without_hanging(tmp_path):
+    paths = []
+    for index, color in enumerate(((255, 0, 0), (0, 255, 0), (0, 0, 255))):
+        path = tmp_path / f"moving-{index}.png"
+        Image.new("RGB", (32, 32), color).save(path)
+        paths.append(path)
+    scores = (0.4, 0.9, 0.6)
+    candidates = tuple(
+        FrameCandidate(
+            FrameProbe((index + 1) * 500, "post_cut"),
+            path,
+            features=_eligible_features(score),
+        )
+        for index, (path, score) in enumerate(zip(paths, scores, strict=True))
+    )
+    config = replace(FrameSelectionConfig(), stable_difference=0.0)
+
+    selection = select_frame(PresentationSegment(0, 3_000), candidates, config)
+
+    assert selection.selected is not None
+    assert selection.selected.probe.timestamp_ms == 1_000
+    assert selection.reason == "highest_quality_eligible"
+
+
+def test_clean_candidate_beats_small_face_pip_even_when_pip_is_earlier(tmp_path):
+    pip = tmp_path / "pip.png"
+    clean = tmp_path / "clean.png"
+    Image.new("RGB", (32, 32), "navy").save(pip)
+    Image.new("RGB", (32, 32), "white").save(clean)
+    candidates = (
+        FrameCandidate(
+            FrameProbe(500, "post_cut"),
+            pip,
+            features=_eligible_features(0.95, warm_component=0.02),
+        ),
+        FrameCandidate(FrameProbe(1_000, "post_cut"), clean, features=_eligible_features(0.70)),
+    )
+    config = replace(FrameSelectionConfig(), stable_difference=1_000.0)
+
+    selection = select_frame(PresentationSegment(0, 2_000), candidates, config)
+
+    assert selection.selected is not None
+    assert selection.selected.path == clean
+
+
+def test_blank_frame_is_rejected(tmp_path):
+    blank = tmp_path / "blank.png"
+    Image.new("RGB", (320, 180), (2, 2, 2)).save(blank)
+
+    features = analyze_frame(blank, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "blank_or_transition"
+
+
+@pytest.mark.parametrize("kind", ["fade", "blur"])
+def test_fade_and_blur_are_rejected_as_transitions(tmp_path, kind):
+    path = tmp_path / f"{kind}.png"
+    if kind == "fade":
+        image = Image.new("RGB", (320, 180), (80, 80, 80))
+    else:
+        image = Image.new("RGB", (320, 180), "black")
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((100, 40, 220, 140), fill="white")
+        image = image.filter(ImageFilter.GaussianBlur(40))
+    image.save(path)
+
+    features = analyze_frame(path, FrameSelectionConfig())
+
+    assert not features.eligible
+    assert features.rejection_reason == "blank_or_transition"
+
+
+def test_invalid_duration_is_rejected():
+    with pytest.raises(ValueError, match="duration_ms must be positive"):
+        build_presentation_segments([], 0)
+
+
+def _eligible_features(
+    score: float, warm_component: float = 0.0, compact_face: float | None = None
+) -> FrameFeatures:
+    pip = warm_component if compact_face is None else compact_face
+    return FrameFeatures(
+        variance=100.0,
+        edge_fraction=0.1,
+        mean_saturation=50.0,
+        warm_fraction=0.0,
+        largest_warm_component_fraction=warm_component,
+        largest_warm_bbox_fraction=warm_component,
+        largest_warm_component_occupancy=1.0 if warm_component else 0.0,
+        compact_face_fraction=pip,
+        evidence_score=score,
+        eligible=True,
+    )
