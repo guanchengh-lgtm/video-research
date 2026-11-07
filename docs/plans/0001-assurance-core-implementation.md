@@ -276,7 +276,7 @@ Each item is deferred with a reason. None is cut from the specification.
 
 | Asset | Reuse |
 |-------|-------|
-| `src/video_research/frame_adapter.py` | Impure Evidence Frame selection behind the extraction port: scene cuts become Presentation Segments, interval-bounded probes are ranked under an evidence-quality contract, and rejections map to `UNOBSERVED` so existing gates fail closed. Never decides run status. Locked by `tests/fixtures/evidence_frames/` and `tests/test_frame_adapter.py`. |
+| `src/video_research/frame_adapter.py` | Impure Evidence Frame selection behind the extraction port: scene cuts become Presentation Segments, interval-bounded probes are ranked under an evidence-quality contract, and rejections map to `UNOBSERVED` so existing gates fail closed. Never decides run status. Locked by `tests/fixtures/evidence_frames/` and `tests/test_evidence_corpus.py` and `tests/test_frame_selection.py`. |
 | `tools/extract_evidence_frames.py` | Fail-closed ffmpeg/yt-dlp entry point that drives `frame_adapter`, publishes a versioned selected/rejected manifest, and stays outside the pure core (`[frames]` optional extra for Pillow). |
 | `CONTEXT.md` | Directly becomes the domain type names. No translation layer. |
 | `research/github-video-summary-skills.md` | Supplies the integration risks encoded as D3 and D9. |

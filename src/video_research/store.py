@@ -224,11 +224,9 @@ def _decode_interval(payload: dict[str, Any] | None) -> TimeInterval | None:
 
 
 def _decode_span(payload: dict[str, Any]) -> SourceSpan:
-    interval = _decode_interval(payload["interval"])
-    assert interval is not None
     return SourceSpan(
         kind=SpanKind(payload["kind"]),
-        interval=interval,
+        interval=_required_interval(payload["interval"]),
         artifact_id=payload.get("artifact_id"),
         artifact_digest=payload.get("artifact_digest"),
         raw_timestamp=payload.get("raw_timestamp"),
@@ -298,11 +296,9 @@ def decode_coverage(payload: dict[str, Any]) -> CoverageManifest:
         body = payload["coverage"]
         windows = []
         for w in body.get("windows", ()):
-            interval = _decode_interval(w["interval"])
-            assert interval is not None
             windows.append(
                 CoverageWindow(
-                    interval=interval,
+                    interval=_required_interval(w["interval"]),
                     speech=SpeechCoverage(w["speech"]),
                     visual=VisualObservation(w["visual"]),
                     extraction_method=w["extraction_method"],

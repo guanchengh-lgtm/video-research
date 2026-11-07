@@ -1,3 +1,0 @@
-# Code files at or over 1000 lines when the cap landed. Shrink them; never add a line.
-freeze src/video_research/frame_adapter.py 2173
-freeze tests/test_frame_adapter.py 1621
