@@ -51,14 +51,10 @@ def extract_video_id(url: str) -> str:
     return match.group(1)
 
 
-def run(command: list[str], **kwargs) -> subprocess.CompletedProcess:
-    return subprocess.run(command, check=True, **kwargs)
-
-
 def download_video(url: str, destination: Path) -> None:
     if destination.exists():
         return
-    run(
+    subprocess.run(
         [
             "yt-dlp",
             "-f",
@@ -68,7 +64,8 @@ def download_video(url: str, destination: Path) -> None:
             "-o",
             str(destination),
             url,
-        ]
+        ],
+        check=True,
     )
 
 
@@ -125,18 +122,6 @@ def detect_scene_timestamps_ms(video: Path) -> list[int]:
         if match:
             timestamps.append(round(float(match.group(1)) * 1_000))
     return timestamps
-
-
-def detect_scene_timestamps(video: Path) -> list[float]:
-    """Compatibility wrapper returning scene boundaries in seconds."""
-
-    return [timestamp / 1_000 for timestamp in detect_scene_timestamps_ms(video)]
-
-
-def extract_frame(video: Path, timestamp: float, destination: Path, width: int = 1280) -> None:
-    """Compatibility entry point accepting seconds, as the original tool did."""
-
-    extract_frame_ms(video, round(timestamp * 1_000), destination, width)
 
 
 def extract_frame_ms(video: Path, timestamp_ms: int, destination: Path, width: int = 1280) -> None:
